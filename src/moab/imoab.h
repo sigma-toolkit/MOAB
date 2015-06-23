@@ -3,7 +3,12 @@
   imoab: simple interface to moab
   callable from c, fortran77, fortran90; fortran 2003 ?
  
+  Notes:
   pass everything by reference, so we do not have to use %VAL()
+  arrays are allocated by the client; 
+  pass the pointer to the start of array, and the allocated length
+  return the filled array, and the actual length (should be 
+  most of the time allocated length)
 */
 
 /**
@@ -80,4 +85,46 @@ int * VisibleSurfaceBC, int * VisibleVertexBC);
   \param (in/out) len; at input, usable memory (3*numv?); on output, actual  
 */
 ErrorCode get_visible_vertices_coordinates(int *pid, double * coords, int * len);
+
+/**
+  vertex ownership for all visible vertices
+
+  \param (in)  pid  application id
+  \param (in/out) vertex_owner  array with rank id 
+  \param (in/out) len; at input: usable memory (numv) ; on output, actual length
+*/
+
+ErrorCode  get_vertices_ownership(int * pid, int * vertex_owner, int * len);
+
+/**
+  \param (in) pid
+  \param (in) block (1 to num visiblt blocks)  
+  \param (out) blockname : integer corresponding to material set
+  \param (out) vert_per_elem
+  \param (out) num_elem 
+
+*/
+ErrorCode get_block_info(int *pid, int * block, int * blockname, int * vert_per_elem, int * num_elem);
+
+/**
+  get connectivity for the whole block
+  (represented by indices in the vertex array, 0 or 1 based?)
+  \param (in) pid
+  \param (in) block 
+  \param (in/out) connectivity  
+  \param (in/out) len  
+
+  Notes: block type (num of vertices known from before)
+  A block corresponds to a material set in moab, and a block in cubit  
+*/
+ErrorCode get_connectivity (int * pid, int *block, int * connectivity, int *len);
+
+/**
+  similar to vertex ownership
+*/
+ErrorCode get_element_ownership(int *pid, int *block, int * elem_owner, int * len);
+
+
+
+
 
