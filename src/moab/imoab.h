@@ -90,11 +90,12 @@ ErrorCode get_visible_vertices_coordinates(int *pid, double * coords, int * len)
   vertex ownership for all visible vertices
 
   \param (in)  pid  application id
-  \param (in/out) vertex_owner  array with rank id 
+  \param (in/out) vertex_owner  array with mesh rank id  (will correspond to GLOBAL_ID tag in MOAB,
+                      if there are no gaps in GLOBAL_ID tag space )
   \param (in/out) len; at input: usable memory (numv) ; on output, actual length
 */
 
-ErrorCode  get_vertices_ownership(int * pid, int * vertex_owner, int * len);
+ErrorCode  get_vertices_ownership(int * pid, int * vertex_ID, int * len);
 
 /**
   \param (in) pid
@@ -120,11 +121,45 @@ ErrorCode get_block_info(int *pid, int * block, int * blockname, int * vert_per_
 ErrorCode get_connectivity (int * pid, int *block, int * connectivity, int *len);
 
 /**
-  similar to vertex ownership
+  similar to vertex ownership; is this GLOBAL_ID or processor rank?
 */
-ErrorCode get_element_ownership(int *pid, int *block, int * elem_owner, int * len);
+ErrorCode get_element_ownership(int *pid, int *block, int * elem_ID, int * len);
 
 
+/**
+  \param pid
+  \param bcid boundary condition index
+  \param (out) len  number of quads in the set
+  output will be length for dimensioning the array for next call
+*/
+ErrorCode get_surface_bc_len(int *pid, int *bcid, int *len);
 
+/**
+ so it would be a set of faces in a neumann set
+ output will be element mesh rank and face index (1 to 6) for each quad in the original set
+  \param (out) elementID  element mesh rank (or element index in local array?)
+  \param (out) referenceSurface face index from 1 to 6 for each 
+ these arrays need to be dimensioned by the client
+*/
+
+ErrorCode get_surface_bc(int *pid, int *bcid, int * elementID, int* referenceSurface, int *len);
+
+/**
+  \param pid
+  \param bcid boundary condition index
+  \param (out) len  number of vertices in the set
+  output will be length for dimensioning the array for next call
+*/
+ErrorCode get_vertex_bc_len(int *pid, int *bcid, int *len);
+
+/**
+ so it would be a set of faces in a dirichlett set
+ output will be vertex rank in the original set
+  \param (out) vertexID  vertex  mesh rank (or vertex index in local array?)
+ these arrays need to be dimensioned by the client
+*/
+
+ErrorCode get_vertex_bc(int *pid, int *bcid, int * vertexID, int *len);
+ 
 
 
