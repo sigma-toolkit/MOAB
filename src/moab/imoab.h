@@ -16,12 +16,12 @@
   pass pointer to the  number of command line arguments and 
    pointer to command line arguments
 */
-ErrorCode initialize_moab(int * pargc, char *** pargv);
+ErrorCode InitializeMoab(int * pargc, char *** pargv);
 
 /**
   deletes the moab instance 
 */
-ErrorCode finalize_moab();
+ErrorCode FinalizeMoab();
 
 /**
   register application 
@@ -34,7 +34,7 @@ ErrorCode finalize_moab();
   \param (in) length of application name 
 */
 
-ErrorCode register_application(char * app_name, int * pid, int len_name);
+ErrorCode RegisterApplication(char * app_name, int * pid, int len_name);
 
 
 
@@ -48,7 +48,7 @@ ErrorCode register_application(char * app_name, int * pid, int len_name);
   \param (out) NumPartitions 
   \param (in) file name length
 */
-ErrorCode  read_header_info (int *pid, char * filename, int * GlobalVertices, int * GlobalElements, int * NumDimensions, int * NumPartitions, int len_filename);
+ErrorCode  ReadHeaderInfo (int *pid, char * filename, int * GlobalVertices, int * GlobalElements, int * NumDimensions, int * NumPartitions, int len_filename);
 
 /**
   load mesh and ghost if needed
@@ -62,18 +62,18 @@ ErrorCode  read_header_info (int *pid, char * filename, int * GlobalVertices, in
    global id, material(block) tags, neumann tags and dirichlett tags
   or should the exchange happen explicitly for the tags user specifies? )
 */
-ErrorCode load_mesh(int * pid, char * filename, MPI_Comm * comm, int * ghost_layers, int len_filename);
+ErrorCode LoadMesh(int * pid, char * filename, MPI_Comm * comm, int * ghost_layers, int len_filename);
 
 /**
   obtain local mesh size information
   \param (in) pid  application id
   \param (out) visibleVertices
   \param (out) VisibleBlocks
-  \param (out) VisibleSurfaceBC
-  \param (out) VisibleVertexBC
+  \param (out) VisibleSurfaceBC (is this the count of surface elem that have a bc?) 
+  \param (out) VisibleVertexBCa (is this the count of vertices that have a BC?)
 */
 
-ErrorCode get_mesh_info(int *pid, int * visibleVertices, int *VisibleBlocks,
+ErrorCode GetMeshInfo(int *pid, int * visibleVertices, int *VisibleBlocks,
 int * VisibleSurfaceBC, int * VisibleVertexBC);
 
 /**
@@ -81,10 +81,81 @@ int * VisibleSurfaceBC, int * VisibleVertexBC);
 
   \param (in) pid 
   \param (in/out) coords  pointer to memory that will be filled with 
-      interleaved coordinates
+      interleaved coordinates; client allocates this 
   \param (in/out) len; at input, usable memory (3*numv?); on output, actual  
 */
-ErrorCode get_visible_vertices_coordinates(int *pid, double * coords, int * len);
+ErrorCode GetVisibleVerticesCoordinates(int *pid, double * coords, int * len);
+
+/**
+  get rank that owns each vertex 
+  
+  \param (in) pid
+  \param (in/out) mesh rank for each vertex (array allocated by client, size visibleVertices)
+        (should this be long for mesh  > 2B ?)
+*/
+
+ErrorCode GetVertexOwnership(int * pid, int * VisibleGlobalRankID);
+
+/** 
+  obtain block information
+  \param (in) pid 
+  \param (in) Block  block ID
+  \param (out) VerticesPerElement  number of vertices per element
+  \param (out) NumElements          number of elements in block
+  \param (out) BlockName  return for the material set the name (if given as NAME in h5m file?)
+  \param (out) lenBlockName  name length 
+*/
+  
+ErrorCode  GetBlockInfo(int *pid, int * Block, int * VerticesPerElement,
+    int * NumElements, char * BlockName, int lenBlockName);
+
+/** 
+  get element connectivity for block
+  \param (in) pid
+  \param (in) block ID
+  \param (in/out) connectivity array (allocated by client, size 
+                VerticesPerElement*NumElements 
+*/
+
+ErrorCode GetElementConnectivity(int *pid, int *Block, int * Connectivity);
+
+/**
+   get element ownership information 
+  \param (in) pid
+  \param (in) block ID
+  \param (in/out) ownership array (allocated by client, size NumElements) 
+                      (this will be global ID in moab terms)
+*/
+ErrorCode GetElementOwnership(int * pid, int * Block,int * ElementRankID);
+
+/**
+   surface boundary condition information
+   (all arrays allocated by client, size VisibleSurfaceBC?)
+
+   \param (in) pid
+   \param (out) element global id (mesh_rank)
+   \param (out) (from 1 to 6 for hex, 1-4 for tetras)  side number 
+   \param (out) boundary condition type ( a number corresponding to NeumannSet ?)
+*/
+ErrorCode GetPointerToSurfaceBC(int *pid, int * ElementID,int * ReferenceSurfaceID,
+  int* BoundaryConditionType);
+
+/**
+   vertex boundary condition info
+   \param (in) pid
+   (all arrays allocated by client, size VisibleVertexBC)
+
+   \param (out) vertex global id (mesh rank?)
+   \param (out) boundary condition type ( a number corresponding to Dirichlet Set ?)
+*/
+ErrorCode GetPointerToVertexBC(int *pid, int * VertexID, int * BoundaryConditionType);
+
+
+
+
+
+
+
 
 /**
   vertex ownership for all visible vertices
