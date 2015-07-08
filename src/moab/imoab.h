@@ -65,15 +65,29 @@ ErrorCode  ReadHeaderInfo (int *pid, char * filename, int * GlobalVertices, int 
   load mesh and ghost if needed (collective)
   \param (in) pid application id 
   \param (in) filename 
+  \param (in) readOptions additional options for reading 
   \param (in) comm   MPI communicator (is this needed if already passed at registration?)
   \param (in) ghost_layers  number of layers 
   \param (in) len_filename  filename length
+  \param (in) len_options  read options length
 
   (this will exchange ghosts and exchange all important tags, like 
    global id, material(block) tags, neumann tags and dirichlett tags
   or should the exchange happen explicitly for the tags user specifies? )
 */
-ErrorCode LoadMesh(int * pid, char * filename, MPI_Comm * comm, int * ghost_layers, int len_filename);
+ErrorCode LoadMesh(int * pid, char * filename, char * readOptions,  MPI_Comm * comm, int * ghost_layers, int len_filename, int len_options);
+
+/**
+  write mesh (collective)
+  \param (in) pid application id 
+  \param (in) filename 
+  \param (in) writeOptions additional options for writing 
+  \param (in) comm   MPI communicator (is this needed if already passed at registration?)
+  \param (in) len_filename  filename length
+  \param (in) len_options  write options length
+( we write one single file; in serial, it will write one file per task)
+*/
+ErrorCode WriteMesh(int * pid, char * filename, char * writeOptions,  MPI_Comm * comm, int len_filename, int len_options);
 
 /**
   obtain local mesh size information 
@@ -128,7 +142,7 @@ ErrorCode  GetBlockInfo(int *pid, int * Block, int * VerticesPerElement,
   \param (in) pid  application id
   \param (in) block ID (index from 1 to VisibleBlocks? ) 
   \param (in/out) connectivity array (allocated by client, size 
-                VerticesPerElement*NumElements 
+                VerticesPerElement*NumElements; it will be local index in coords array)
 */
 
 ErrorCode GetElementConnectivity(int *pid, int *Block, int * Connectivity);
@@ -139,7 +153,10 @@ ErrorCode GetElementConnectivity(int *pid, int *Block, int * Connectivity);
   \param (in) block ID (num from 1 to VisibleBlocks) : we don't know how many global blocks
   \param (in/out) ownership array (allocated by client, size NumElements) 
                       (this will be global ID in moab terms)
+  ( Do we need some information about who are ghosts, and who are owned? for vertices we 
+    would also need sharing information. )
 */
+
 ErrorCode GetElementOwnership(int * pid, int * Block,int * ElementRankID);
 
 /**
@@ -164,6 +181,35 @@ ErrorCode GetPointerToSurfaceBC(int *pid, int * ElementID,int * ReferenceSurface
 */
 ErrorCode GetPointerToVertexBC(int *pid, int * VertexID, int * BoundaryConditionType);
 
- 
 
+/**
+  FIXME
+   (in moab, it will create a dense, double tag ; do we care about sparse tags/ bit tags, integer tags, handle tags, etc)
+   \param (in) pid  application id
+   \param (in) Name  will correspond to name of the tag in moab
+   \param (in) VectorType ?? 
+           (in moab, tags can be associated to all entities, elements or vertices, or even sets,
+            we do not restrict a tag to a specific entity type)
+   \param (in) VectorDimensions : corresponding to the size of the tag (how many doubles per entity?)
+*/
+ErrorCode DefineVectorStorage(int * pid, char * Name, int * VectorType, int * VectorDimensions);
 
+/**
+   FIXME
+   \param (in) pid  application id
+   \param (in) Name  will correspond to name of the tag in moab
+   \param (out) Value  double pointer for internal tag memory  
+             (it assumes the entities in moab are contiguous, no gaps, and only one entity sequence)
+*/
+ErrorCode SolutionVectorStorage(int * pid, ,char * Name, double * Value);
+
+/**
+   FIXME 
+   adjancency calls?
+   \param (in) pid  application id
+   \param (in) eid element index 
+   \param (out) numadj number of adjacent elements
+   \param (in/out) adjacent elements (in terms of element index or element mesh rank?) (size of number of sides?)
+*/
+
+ErrorCode AdjacentElements (int *pid, int * eid, int * numadj, int * adjElems); 
