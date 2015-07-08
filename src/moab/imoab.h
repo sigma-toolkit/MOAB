@@ -16,7 +16,7 @@
   pass pointer to the  number of command line arguments and 
    pointer to command line arguments
 */
-ErrorCode InitializeMoab(int * pargc, char *** pargv);
+ErrorCode InitializeMoab(int argc, char **argv);
 
 /**
   deletes the moab instance 
@@ -29,25 +29,32 @@ ErrorCode FinalizeMoab();
    for this application will reside in this mesh/file set)
   whenever something is required about the mesh, this integer id will need to be passed
   
-  \param app_name application name (PROTEUS, NEK5000, etc)
+  \param (in) app_name application name (PROTEUS, NEK5000, etc)
+  \param (in) comm  MPI communicator
   \param (out) pid  application id pointer 
-  \param (in) length of application name 
+  \param (in) length of application name  
 */
 
-ErrorCode RegisterApplication(char * app_name, int * pid, int len_name);
+ErrorCode RegisterApplication(char * app_name, MPI_Comm * comm, int * pid, int len_name);
 
+/**
+  deregister application: delete mesh associated with it
+  \param (in) pid  application id pointer 
+*/
 
+ErrorCode DeregisterApplication( int * pid );
 
 /**
   Get global information from the file
   \param (in) pid application id
-  \param filename 
+  \param (in) filename 
   \param (out) GlobalVertices
   \param (out) GlobalElements (highest dimension only?)
   \param (out) NumDimensions ( 2 or 3 ) 
   \param (out) NumPartitions 
   \param (in) file name length
 */
+
 ErrorCode  ReadHeaderInfo (int *pid, char * filename, int * GlobalVertices, int * GlobalElements, int * NumDimensions, int * NumPartitions, int len_filename);
 
 /**
@@ -98,7 +105,7 @@ ErrorCode GetVertexOwnership(int * pid, int * VisibleGlobalRankID);
 
 /** 
   obtain block information
-  \param (in) pid 
+  \param (in) pid  application id
   \param (in) Block  block ID
   \param (out) VerticesPerElement  number of vertices per element
   \param (out) NumElements          number of elements in block
@@ -111,8 +118,8 @@ ErrorCode  GetBlockInfo(int *pid, int * Block, int * VerticesPerElement,
 
 /** 
   get element connectivity for block
-  \param (in) pid
-  \param (in) block ID
+  \param (in) pid  application id
+  \param (in) block ID (index from 1 to VisibleBlocks? ) 
   \param (in/out) connectivity array (allocated by client, size 
                 VerticesPerElement*NumElements 
 */
@@ -122,6 +129,7 @@ ErrorCode GetElementConnectivity(int *pid, int *Block, int * Connectivity);
 /**
    get element ownership information 
   \param (in) pid
+  \param (in) pid  application id
   \param (in) block ID
   \param (in/out) ownership array (allocated by client, size NumElements) 
                       (this will be global ID in moab terms)
@@ -132,6 +140,7 @@ ErrorCode GetElementOwnership(int * pid, int * Block,int * ElementRankID);
    surface boundary condition information
    (all arrays allocated by client, size VisibleSurfaceBC?)
 
+  \param (in) pid  application id
    \param (in) pid
    \param (out) element global id (mesh_rank)
    \param (out) (from 1 to 6 for hex, 1-4 for tetras)  side number 
@@ -143,6 +152,7 @@ ErrorCode GetPointerToSurfaceBC(int *pid, int * ElementID,int * ReferenceSurface
 /**
    vertex boundary condition info
    \param (in) pid
+  \param (in) pid  application id
    (all arrays allocated by client, size VisibleVertexBC)
 
    \param (out) vertex global id (mesh rank?)
@@ -153,20 +163,6 @@ ErrorCode GetPointerToVertexBC(int *pid, int * VertexID, int * BoundaryCondition
 
 
 
-
-
-
-
-/**
-  vertex ownership for all visible vertices
-
-  \param (in)  pid  application id
-  \param (in/out) vertex_owner  array with mesh rank id  (will correspond to GLOBAL_ID tag in MOAB,
-                      if there are no gaps in GLOBAL_ID tag space )
-  \param (in/out) len; at input: usable memory (numv) ; on output, actual length
-*/
-
-ErrorCode  get_vertices_ownership(int * pid, int * vertex_ID, int * len);
 
 /**
   \param (in) pid
