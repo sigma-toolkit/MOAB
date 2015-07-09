@@ -151,8 +151,8 @@ ErrorCode  GetBlockInfo(int *pid, int * Block, int * VerticesPerElement,
   GetElementConnectivity
   get element connectivity for block
   \param (in) pid  application id
-  \param (in) block ID (index from 1 to VisibleBlocks? ) 
-  \param (in/out) connectivity array (allocated by client, size 
+  \param (in) Block block ID (index from 1 to VisibleBlocks? ) 
+  \param (in/out) Connectivity  connectivity array (allocated by client, size 
                 VerticesPerElement*NumElements; it will be local index in coords array)
   \param (in/out) len  allocated size of array (on input); 
                 on output, it should be actual length, VerticesPerElement*NumElements. 
@@ -173,12 +173,12 @@ ErrorCode GetElementOwnership(int * pid, int * Block,int * ElementRankID, int *l
   GetElementID
    get element ownership information 
   \param (in) pid  application id
-  \param (in) block ID (num from 1 to VisibleBlocks) : we don't know how many global blocks
-  \param (in/out) global ID for each element (allocated by client, size NumElements) 
+  \param (in) Block:  block ID (num from 1 to VisibleBlocks) : we don't know how many global blocks
+  \param (in/out) ElementID  global ID for each element (allocated by client, size NumElements) 
                       (this will be global ID in moab terms)
   \param (in/out) len  allocated size of array (on input); 
 */
-ErrorCode GetElementID(int * pid, int * Block,int * ElementRankID);
+ErrorCode GetElementID(int * pid, int * Block, int * ElementID, int * len);
 
 /**
   GetPointerToSurfaceBC
@@ -188,22 +188,22 @@ ErrorCode GetElementID(int * pid, int * Block,int * ElementRankID);
   \param (in) pid  application id
   \param (in/out) ElementID element global id ( corresponding to moab global ID ) 
   \param (in/out) ReferenceSurfaceID, (from 1 to 6 for hex, 1-4 for tetras)  side number 
-  \param (in/out) boundary condition type ( a number corresponding to NeumannSet ?)
+  \param (in/out) BoundaryConditionType boundary condition type ( a number corresponding to NeumannSet ?)
   \param (in/out) len  allocated size of both arrays (on input); 
 */
 ErrorCode GetPointerToSurfaceBC(int *pid, int * ElementID,int * ReferenceSurfaceID,
-  int* BoundaryConditionType);
+  int* BoundaryConditionType, int * len);
 
 /**
   GetPointerToVertexBC
    vertex boundary condition info
    (all arrays allocated by client, size VisibleVertexBC)
-   \param (in) pid  application id
-   \param (in/out) vertex global id
-   \param (in/out) boundary condition type ( a number corresponding to Dirichlet Set ?)
+   \param (in)     pid  application id
+   \param (in/out) VertexID vertex global id
+   \param (in/out) BoundaryConditionType boundary condition type ( a number corresponding to Dirichlet Set ?)
    \param (in/out) len  allocated size of both arrays (on input); 
 */
-ErrorCode GetPointerToVertexBC(int *pid, int * VertexID, int * BoundaryConditionType);
+ErrorCode GetPointerToVertexBC(int *pid, int * VertexID, int * BoundaryConditionType, int * len);
 
 
 /**
