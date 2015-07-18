@@ -292,8 +292,7 @@ ErrorCode DefineTagStorage(int* pid, char* tag_storage_name, int* tag_type, int*
    \param[in]  pid (int*)                       The unique pointer to the application ID
    \param[in]  tag_storage_name (char*)         The tag name to store/retreive the data in MOAB
    \param[in]  num_tag_storage_length (int*)    The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
-   \param[out] tag_storage_data (int*)          The array data of type <I>int</I> to replace the internal tag memory
-               <P>The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)</P>
+   \param[out] tag_storage_data (int*)          The array data of type <I>int</I> to replace the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (char*)  The length of the tag_storage_name string
 */
 ErrorCode SetIntTagStorage(int* pid, char* tag_storage_name, int* num_tag_storage_length, int* tag_storage_data, int tag_storage_name_length);
@@ -307,8 +306,7 @@ ErrorCode SetIntTagStorage(int* pid, char* tag_storage_name, int* num_tag_storag
    \param[in]  pid (int*)                       The unique pointer to the application ID
    \param[in]  tag_storage_name (char*)         The tag name to store/retreive the data in MOAB
    \param[in]  num_tag_storage_length (int*)    The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
-   \param[out] tag_storage_data (int*)          The array data of type <I>int</I> to be copied from the internal tag memory
-               <P>The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)</P>
+   \param[out] tag_storage_data (int*)          The array data of type <I>int</I> to be copied from the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (char*)  The length of the tag_storage_name string
 */
 ErrorCode GetIntTagStorage(int* pid, char* tag_storage_name, int* num_tag_storage_length, int* tag_storage_data, int tag_storage_name_length);
@@ -322,8 +320,7 @@ ErrorCode GetIntTagStorage(int* pid, char* tag_storage_name, int* num_tag_storag
    \param[in]  pid (int*)                       The unique pointer to the application ID
    \param[in]  tag_storage_name (char*)         The tag name to store/retreive the data in MOAB
    \param[in]  num_tag_storage_length (int*)    The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
-   \param[out] tag_storage_data (double*)       The array data of type <I>double</I> to replace the internal tag memory
-               <P>The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)</P>
+   \param[out] tag_storage_data (double*)       The array data of type <I>double</I> to replace the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (char*)  The length of the tag_storage_name string
 */
 ErrorCode SetDoubleTagStorage(int* pid, char* tag_storage_name, int* num_tag_storage_length, double* tag_storage_data, int tag_storage_name_length);
@@ -337,8 +334,7 @@ ErrorCode SetDoubleTagStorage(int* pid, char* tag_storage_name, int* num_tag_sto
    \param[in]  pid (int*)                       The unique pointer to the application ID
    \param[in]  tag_storage_name (char*)         The tag name to store/retreive the data in MOAB
    \param[in]  num_tag_storage_length (int*)    The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
-   \param[out] tag_storage_data (double*)       The array data of type <I>double</I> to be copied from the internal tag memory
-               <P>The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)</P>
+   \param[out] tag_storage_data (double*)       The array data of type <I>double</I> to be copied from the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (char*)  The length of the tag_storage_name string
 */
 ErrorCode GetDoubleTagStorage(int* pid, char* tag_storage_name, int* num_tag_storage_length, double* tag_storage_data, int tag_storage_name_length);
