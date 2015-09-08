@@ -18,13 +18,27 @@ copy it in this folder (imoab/src/mhdf) temporarily; after imoab is part of moab
 
 #include <H5Tpublic.h>
 
+#include <iostream>
+#include "moab/ParallelComm.hpp"
+#include <sstream>
 
-// global variables (static?)
+// global variables ; should they be organized in a structure, for easier references?
+// or how do we keep them global?
 
 Interface * MBI = 0;
+// are there reasons to have multiple moab inits? Is ref count needed?
 int refCountMB( 0) ;
 int iArgc;
 iMOAB_String * iArgv;
+
+/*
+ list of moab entity sets corresponding to each application and pid
+ */
+int unused_pid =0;
+std::vector<EntityHandle>  app_FileSets; // in order of creation
+std::map<std::string, int> appIdMap;     // from app string (uppercase) to app id
+std::vector<ParallelComm*> pcomms; // created in order of applications, one moab::ParallelComm for each
+
 
 /** 
   \fn ErrorCode iMOABInitialize( int argc, iMOAB_String* argv )
@@ -45,14 +59,14 @@ ErrCode iMOABInitialize( int argc, iMOAB_String* argv )
    return MB_SUCCESS;
 }
 
-
+#if 0
 /** 
   \fn ErrorCode iMOABInitializeFortran( )
   \brief Initialize the iMOAB interface implementation from Fortran driver and create the MOAB instance, if not created already (reference counted).
 
   <B>Operations:</B> Collective
 */
-#if 0
+
 ErrorCode iMOABInitializeFortran( );
 #endif 
 
@@ -85,8 +99,36 @@ ErrCode iMOABFinalize()
   \param[out] pid (iMOAB_AppID)       The unique pointer to the application ID
 */
 
-#if 0
-ErrorCode RegisterApplication( iMOAB_String app_name, MPI_Comm* comm, iMOAB_AppID pid );
+
+ErrCode RegisterApplication( iMOAB_String app_name, MPI_Comm* comm, iMOAB_AppID pid )
+{
+  // will create a parallel comm for this application too, so there will be a
+  // mapping from *pid to file set and to parallel comm instances
+  std::string name(app_name);
+  if (appIdMap.find(name)!=appIdMap.end())
+  {
+    std::cout << " application already registered \n";
+    return 1;
+  }
+  *pid =  unused_pid++;
+  appIdMap[name] = *pid;
+  // now create ParallelComm and a file set for this application
+  ParallelComm * pco = new ParallelComm(MBI, *comm);
+
+#if 1
+  int index = pco->get_id(); // t could be useful to get app id from pcomm instance ...
+  assert(index==*pid);
+#endif
+  pcomms.push_back(pco);
+
+  // create now the file set that will be used for loading the model in
+  EntityHandle file_set;
+  ErrorCode rval = MBI->create_meshset(MESHSET_SET, file_set);
+  if (MB_SUCCESS != rval )
+    return 1;
+  app_FileSets.push_back(file_set); // it will correspond to app_FileSets[*pid] will be the file set of interest
+  return 0;
+}
 
 /**
   \fn ErrorCode RegisterFortranApplication( iMOAB_String app_name, int* comm, iMOAB_AppID pid, int app_name_length )
@@ -103,6 +145,8 @@ ErrorCode RegisterApplication( iMOAB_String app_name, MPI_Comm* comm, iMOAB_AppI
   \param[out] pid (iMOAB_AppID)       The unique pointer to the application ID
   \param[in]  app_name_length (int)   Length of application name string
 */
+
+#if 0
 ErrorCode RegisterFortranApplication( iMOAB_String app_name, int* comm, iMOAB_AppID pid, int app_name_length );
 
 /**
@@ -232,7 +276,7 @@ ErrCode ReadHeaderInfo ( iMOAB_String filename, int* num_global_vertices, int* n
 }
 
 
-#if 0
+
 /**
   \fn ErrorCode LoadMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String read_options, int num_ghost_layers, int filename_length, int read_options_length )
   \brief Load a MOAB mesh file in parallel and exchange ghost layers as requested
@@ -253,8 +297,32 @@ ErrCode ReadHeaderInfo ( iMOAB_String filename, int* num_global_vertices, int* n
 */
 
 
-ErrorCode LoadMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String read_options, int num_ghost_layers, int filename_length, int read_options_length );
+ErrCode LoadMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String read_options, int * num_ghost_layers, int filename_length, int read_options_length )
+{
 
+  /*
+   *  int index = pco->get_id();
+        std::ostringstream newopts;
+        newopts  << options.str();
+        newopts << ";PARALLEL_COMM="<<index;
+        result = mbImpl->load_file( filenames[i].c_str(), 0, newopts.str().c_str());
+   */
+  // make sure we use the file set and pcomm associated with the *pid
+  std::ostringstream newopts;
+  newopts  << read_options;
+  newopts << ";PARALLEL_COMM="<<*pid;
+  if (*num_ghost_layers>=1)
+  {
+    newopts << ";PARALLEL_GHOSTS=3.0."<<*num_ghost_layers;
+  }
+  ErrorCode rval = MBI->load_file(filename, &app_FileSets[*pid], newopts.str().c_str());
+  if (MB_SUCCESS!=rval)
+    return 1;
+
+  return 0;
+}
+
+#if 0
 /**
   \fn ErrorCode WriteMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String write_options, int filename_length, int write_options_length )
   \brief Write a MOAB mesh along with the solution tags to a file
