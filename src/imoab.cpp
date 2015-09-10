@@ -300,25 +300,33 @@ ErrCode ReadHeaderInfo ( iMOAB_String filename, int* num_global_vertices, int* n
 ErrCode LoadMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String read_options, int * num_ghost_layers, int filename_length, int read_options_length )
 {
 
-  /*
-   *  int index = pco->get_id();
-        std::ostringstream newopts;
-        newopts  << options.str();
-        newopts << ";PARALLEL_COMM="<<index;
-        result = mbImpl->load_file( filenames[i].c_str(), 0, newopts.str().c_str());
-   */
+
   // make sure we use the file set and pcomm associated with the *pid
   std::ostringstream newopts;
   newopts  << read_options;
   newopts << ";PARALLEL_COMM="<<*pid;
   if (*num_ghost_layers>=1)
   {
-    newopts << ";PARALLEL_GHOSTS=3.0."<<*num_ghost_layers;
+    // if we want ghosts, we will want additional entities, the last .1
+    // because the addl ents can be edges, faces that are part of the neumann sets
+    newopts << ";PARALLEL_GHOSTS=3.0."<<*num_ghost_layers<<".3";
   }
   ErrorCode rval = MBI->load_file(filename, &app_FileSets[*pid], newopts.str().c_str());
   if (MB_SUCCESS!=rval)
     return 1;
+  int rank = pcomms[*pid]->rank();
+  int nprocs=pcomms[*pid]->size();
 
+#if 1
+  // some debugging stuff
+  std::ostringstream outfile;
+  outfile <<"TaskMesh_n" <<nprocs<<"."<< rank<<".h5m";
+  // the mesh contains ghosts too, but they are not part of mat/neumann set
+  // write in serial the file, to see what tags are missing
+  rval = MBI->write_file(outfile.str().c_str()); // everything on root
+  if (MB_SUCCESS!=rval)
+    return 1;
+#endif
   return 0;
 }
 
