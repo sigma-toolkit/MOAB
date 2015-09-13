@@ -129,7 +129,7 @@ ErrCode RegisterApplication( iMOAB_String app_name, MPI_Comm* comm, iMOAB_AppID 
   app_FileSets.push_back(file_set); // it will correspond to app_FileSets[*pid] will be the file set of interest
   return 0;
 }
-
+#if 0
 /**
   \fn ErrorCode RegisterFortranApplication( iMOAB_String app_name, int* comm, iMOAB_AppID pid, int app_name_length )
   \brief Register a Fortran-basedapplication - Create a unique application ID and bootstrap interfaces for further queries.
@@ -146,9 +146,9 @@ ErrCode RegisterApplication( iMOAB_String app_name, MPI_Comm* comm, iMOAB_AppID 
   \param[in]  app_name_length (int)   Length of application name string
 */
 
-#if 0
-ErrorCode RegisterFortranApplication( iMOAB_String app_name, int* comm, iMOAB_AppID pid, int app_name_length );
 
+ErrorCode RegisterFortranApplication( iMOAB_String app_name, int* comm, iMOAB_AppID pid, int app_name_length );
+#endif
 /**
   \fn ErrorCode DeregisterApplication( iMOAB_AppID pid )
   \brief De-Register application: delete mesh (set) associated with the application ID
@@ -157,8 +157,33 @@ ErrorCode RegisterFortranApplication( iMOAB_String app_name, int* comm, iMOAB_Ap
 
   \param[in] pid (iMOAB_AppID) The unique pointer to the application ID
 */
-ErrorCode DeregisterApplication( iMOAB_AppID pid );
-#endif
+ErrCode DeregisterApplication( iMOAB_AppID pid )
+{
+	// the file set , parallel comm are all in vectors indexed by *pid
+  // assume we did not delete anything yet
+  // *pid will not be reused if we register another application
+  ParallelComm * pco = pcomms[*pid];
+  // we could get the pco also with
+  // ParallelComm * pcomm = ParallelComm::get_pcomm(MBI, *pid);
+  EntityHandle fileSet = app_FileSets[*pid];
+  // get all entities part of the file set
+  Range fileents;
+  ErrorCode rval = MBI->get_entities_by_handle(fileSet, fileents,
+  /*recursive */true);
+  if (MB_SUCCESS != rval )
+    return 1;
+
+  fileents.insert(fileSet);
+
+  delete pco;
+  rval = MBI->delete_entities(fileents);
+
+  if (MB_SUCCESS != rval )
+    return 1;
+
+  return 0;
+}
+
 /**
   \fn ErrorCode ReadHeaderInfo ( iMOAB_String filename, int* num_global_vertices, int* num_global_elements, int* num_dimension, int* num_parts, int filename_length )
   \brief Get global information from the file

@@ -41,6 +41,9 @@ int main(int argc, char * argv[])
   int num_ghost_layers=1;
   rc = LoadMesh(  pid, filen, read_opts, &num_ghost_layers, strlen(filen), strlen(read_opts) );
 
+  rc = DeregisterApplication(pid);
+  CHECKRC(rc, "failed to de-register application");
+
   rc = iMOABFinalize();
   CHECKRC(rc, "failed to finalize MOAB");
 
