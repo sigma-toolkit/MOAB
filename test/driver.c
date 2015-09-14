@@ -71,7 +71,7 @@ int main(int argc, char * argv[])
     int numToPrint = nverts;
     printf("on rank %d some vertex ranks:\n", rank);
     for (int i=0; i<numToPrint; i++)
-      printf(" vertex local id: %3d, rank ID:%d global ID: %3d \n",vLocalID[i], vranks[i], vGlobalID[i] );
+      printf(" vertex local id: %3d, rank ID:%d  global ID: %3d \n",vLocalID[i], vranks[i], vGlobalID[i] );
   }
 
   free (vGlobalID);

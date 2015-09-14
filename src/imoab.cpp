@@ -375,6 +375,14 @@ ErrCode LoadMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String read_opti
   int rank = pcomms[*pid]->rank();
   int nprocs=pcomms[*pid]->size();
 
+  // do a global id exchange, for all entities
+  Range ents;
+  rval = MBI->get_entities_by_handle(appDatas[*pid].file_set, ents, true);
+  if (MB_SUCCESS!=rval)
+    return 1;
+  rval = pcomms[*pid]->exchange_tags(gtags[3], ents);
+  if (MB_SUCCESS!=rval)
+    return 1;
 #if 1
   // some debugging stuff
   std::ostringstream outfile;
