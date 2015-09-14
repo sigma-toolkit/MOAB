@@ -40,6 +40,12 @@ int main(int argc, char * argv[])
   char *read_opts="PARALLEL=READ_PART;PARTITION=PARALLEL_PARTITION;PARALLEL_RESOLVE_SHARED_ENTS";
   int num_ghost_layers=1;
   rc = LoadMesh(  pid, filen, read_opts, &num_ghost_layers, strlen(filen), strlen(read_opts) );
+  CHECKRC(rc, "failed to load mesh");
+
+  char outputFile[] = "fnew.h5m";
+  char writeOptions[] ="PARALLEL=WRITE_PART";
+  rc = WriteMesh(pid, outputFile, writeOptions,
+      strlen(outputFile), strlen(writeOptions) );
 
   rc = DeregisterApplication(pid);
   CHECKRC(rc, "failed to de-register application");

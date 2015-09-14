@@ -355,7 +355,7 @@ ErrCode LoadMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String read_opti
   return 0;
 }
 
-#if 0
+
 /**
   \fn ErrorCode WriteMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String write_options, int filename_length, int write_options_length )
   \brief Write a MOAB mesh along with the solution tags to a file
@@ -371,8 +371,18 @@ ErrCode LoadMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String read_opti
   \param[in] filename_length (int*)       Length of the filename string
   \param[in] write_options_length (int*)  Length of the write options string
 */
-ErrorCode WriteMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String write_options, int filename_length, int write_options_length );
+ErrCode WriteMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String write_options, int filename_length, int write_options_length )
+{
+  // maybe do some processing of strings and lengths
+  // maybe do some options processing?
+  ErrorCode rval = MBI->write_file(filename,0, write_options,  &app_FileSets[*pid], 1);
+  if (MB_SUCCESS!=rval)
+    return 1;
+  return 0;
+}
 
+
+#if 0
 /**
   \fn ErrorCode GetMeshInfo( iMOAB_AppID pid, int* num_visible_vertices, int* num_visible_elements, int *num_visible_blocks, int* num_visible_surfaceBC, int* num_visible_vertexBC )
   \brief Obtain local mesh size information based on the loaded file
