@@ -20,12 +20,26 @@ copy it in this folder (imoab/src/mhdf) temporarily; after imoab is part of moab
 
 #include <iostream>
 #include "moab/ParallelComm.hpp"
+#include "MBTagConventions.hpp"
 #include <sstream>
 
 // global variables ; should they be organized in a structure, for easier references?
 // or how do we keep them global?
 
 Interface * MBI = 0;
+// we should also have the default tags stored, initialized
+Tag gtags[5]; // material, neumann, dirichlet, partition tag, globalID
+// should this be part of init moab?
+
+struct appData {
+  EntityHandle file_set;
+  Range all_verts;
+  Range primary_elems;
+  Range mat_sets;
+  Range neu_sets;
+  Range diri_sets;
+};
+
 // are there reasons to have multiple moab inits? Is ref count needed?
 int refCountMB( 0) ;
 int iArgc;
@@ -35,10 +49,10 @@ iMOAB_String * iArgv;
  list of moab entity sets corresponding to each application and pid
  */
 int unused_pid =0;
-std::vector<EntityHandle>  app_FileSets; // in order of creation
+// std::vector<EntityHandle>  app_FileSets; // in order of creation
 std::map<std::string, int> appIdMap;     // from app string (uppercase) to app id
 std::vector<ParallelComm*> pcomms; // created in order of applications, one moab::ParallelComm for each
-
+std::vector<appData> appDatas; // the same order as pcomms
 
 /** 
   \fn ErrorCode iMOABInitialize( int argc, iMOAB_String* argv )
@@ -54,7 +68,22 @@ ErrCode iMOABInitialize( int argc, iMOAB_String* argv )
    iArgc = argc;
    iArgv = argv; // shalow copy
    if (0==refCountMB)
+   {
      MBI = new Core();
+     // retrieve the default tags
+     const char* const shared_set_tag_names[] = {MATERIAL_SET_TAG_NAME,
+                                                 NEUMANN_SET_TAG_NAME,
+                                                 DIRICHLET_SET_TAG_NAME,
+                                                 GLOBAL_ID_TAG_NAME};
+     // blocks, visible surfaceBC(neumann), vertexBC (Dirichlet), global id, parallel partition
+     for (int i = 0; i < 4; i++) {
+
+       ErrorCode rval = MBI->tag_get_handle(shared_set_tag_names[i], 1, MB_TYPE_INTEGER,
+                                           gtags[i], MB_TAG_ANY);
+       if (MB_SUCCESS!=rval)
+         return 1;
+     }
+   }
    refCountMB++;
    return MB_SUCCESS;
 }
@@ -126,7 +155,9 @@ ErrCode RegisterApplication( iMOAB_String app_name, MPI_Comm* comm, iMOAB_AppID 
   ErrorCode rval = MBI->create_meshset(MESHSET_SET, file_set);
   if (MB_SUCCESS != rval )
     return 1;
-  app_FileSets.push_back(file_set); // it will correspond to app_FileSets[*pid] will be the file set of interest
+  appData app_data;
+  app_data.file_set=file_set;
+  appDatas.push_back(app_data); // it will correspond to app_FileSets[*pid] will be the file set of interest
   return 0;
 }
 #if 0
@@ -165,16 +196,18 @@ ErrCode DeregisterApplication( iMOAB_AppID pid )
   ParallelComm * pco = pcomms[*pid];
   // we could get the pco also with
   // ParallelComm * pcomm = ParallelComm::get_pcomm(MBI, *pid);
-  EntityHandle fileSet = app_FileSets[*pid];
+  EntityHandle fileSet = appDatas[*pid].file_set;
   // get all entities part of the file set
   Range fileents;
-  ErrorCode rval = MBI->get_entities_by_handle(fileSet, fileents,
-  /*recursive */true);
+  ErrorCode rval = MBI->get_entities_by_handle(fileSet, fileents, /*recursive */true);
   if (MB_SUCCESS != rval )
     return 1;
 
   fileents.insert(fileSet);
 
+  rval = MBI->get_entities_by_type(fileSet, MBENTITYSET, fileents); // append all mesh sets
+  if (MB_SUCCESS != rval )
+    return 1;
   delete pco;
   rval = MBI->delete_entities(fileents);
 
@@ -336,7 +369,7 @@ ErrCode LoadMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String read_opti
     // because the addl ents can be edges, faces that are part of the neumann sets
     newopts << ";PARALLEL_GHOSTS=3.0."<<*num_ghost_layers<<".3";
   }
-  ErrorCode rval = MBI->load_file(filename, &app_FileSets[*pid], newopts.str().c_str());
+  ErrorCode rval = MBI->load_file(filename, &appDatas[*pid].file_set, newopts.str().c_str());
   if (MB_SUCCESS!=rval)
     return 1;
   int rank = pcomms[*pid]->rank();
@@ -375,14 +408,14 @@ ErrCode WriteMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String write_op
 {
   // maybe do some processing of strings and lengths
   // maybe do some options processing?
-  ErrorCode rval = MBI->write_file(filename,0, write_options,  &app_FileSets[*pid], 1);
+  ErrorCode rval = MBI->write_file(filename,0, write_options,  &appDatas[*pid].file_set, 1);
   if (MB_SUCCESS!=rval)
     return 1;
   return 0;
 }
 
 
-#if 0
+
 /**
   \fn ErrorCode GetMeshInfo( iMOAB_AppID pid, int* num_visible_vertices, int* num_visible_elements, int *num_visible_blocks, int* num_visible_surfaceBC, int* num_visible_vertexBC )
   \brief Obtain local mesh size information based on the loaded file
@@ -396,8 +429,42 @@ ErrCode WriteMesh( iMOAB_AppID pid, iMOAB_String filename, iMOAB_String write_op
   \param[out] num_visible_surfaceBC (int*) The number of surfaces that have a NEUMANN_SET B.C defined in local mesh in current partition/process arranged as: owned only, ghosted/shared, total_visible (array allocated by client, <TT>size := 3</TT>)
   \param[out] num_visible_vertexBC (int*)  The number of vertices that have a DIRICHLET_SET B.C defined in local mesh in current partition/process arranged as: owned only, ghosted/shared, total_visible (array allocated by client, <TT>size := 3</TT>)
 */
-ErrorCode GetMeshInfo( iMOAB_AppID pid, int* num_visible_vertices, int* num_visible_elements, int *num_visible_blocks, int* num_visible_surfaceBC, int* num_visible_vertexBC );
+ErrCode GetMeshInfo( iMOAB_AppID pid, int* num_visible_vertices, int* num_visible_elements, int *num_visible_blocks, int* num_visible_surfaceBC, int* num_visible_vertexBC )
+{
 
+  // this will include ghost elements
+  // we should keep a data structure with mesh, sets, etc, for each pid
+  //
+  EntityHandle fileSet=appDatas[*pid].file_set;
+  ErrorCode rval = MBI->get_entities_by_type(fileSet, MBVERTEX, appDatas[*pid].all_verts, true); // recursive
+  if (MB_SUCCESS!=rval)
+    return 1;
+  *num_visible_vertices = (int) appDatas[*pid].all_verts.size();
+  // is dimension 3?
+  rval = MBI->get_entities_by_dimension(fileSet, 3, appDatas[*pid].primary_elems, true); // recursive
+  if (MB_SUCCESS!=rval)
+    return 1;
+  *num_visible_elements = (int) appDatas[*pid].primary_elems.size();
+
+  // get all blocks, BCs, etc
+  rval = MBI->get_entities_by_type_and_tag(fileSet, MBENTITYSET, &(gtags[0]), 0, 1, appDatas[*pid].mat_sets , Interface::UNION);
+  if (MB_SUCCESS!=rval)
+    return 1;
+  *num_visible_blocks = (int)appDatas[*pid].mat_sets.size();
+  rval = MBI->get_entities_by_type_and_tag(fileSet, MBENTITYSET, &(gtags[1]), 0, 1, appDatas[*pid].neu_sets , Interface::UNION);
+  if (MB_SUCCESS!=rval)
+    return 1;
+  *num_visible_surfaceBC = (int)appDatas[*pid].neu_sets.size();
+
+  rval = MBI->get_entities_by_type_and_tag(fileSet, MBENTITYSET, &(gtags[2]), 0, 1, appDatas[*pid].diri_sets , Interface::UNION);
+  if (MB_SUCCESS!=rval)
+    return 1;
+  *num_visible_vertexBC= (int)appDatas[*pid].diri_sets.size();
+
+  return 0;
+}
+
+#if 0
 /**
   \fn ErrorCode GetVertexID( iMOAB_AppID pid, int vertices_length, iMOAB_GlobalID* global_vertex_ID, iMOAB_LocalID* local_vertex_ID )
   \brief Get the global vertex ID for all locally visible (owned and shared/ghosted) vertices

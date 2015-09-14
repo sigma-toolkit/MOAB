@@ -42,6 +42,19 @@ int main(int argc, char * argv[])
   rc = LoadMesh(  pid, filen, read_opts, &num_ghost_layers, strlen(filen), strlen(read_opts) );
   CHECKRC(rc, "failed to load mesh");
 
+  int nverts, nelem, nblocks, nsbc, ndbc;
+  rc = GetMeshInfo(  pid, &nverts, &nelem, &nblocks, &nsbc, &ndbc);
+  CHECKRC(rc, "failed to get mesh info");
+  if (0==rank)
+  {
+    printf("on rank %d, there are \n"
+        "  %d visible vertices\n"
+        "  %d visible elements\n"
+        "  %d visible blocks\n"
+        "  %d visible neumann sets\n"
+        "  %d visible dirichlet sets\n", rank, nverts, nelem, nblocks, nsbc, ndbc);
+  }
+
   char outputFile[] = "fnew.h5m";
   char writeOptions[] ="PARALLEL=WRITE_PART";
   rc = WriteMesh(pid, outputFile, writeOptions,
