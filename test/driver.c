@@ -65,15 +65,43 @@ int main(int argc, char * argv[])
   int * vranks = (int*)malloc(nverts*sizeof(int));
   rc =GetVertexOwnership(pid, nverts, vranks );
   CHECKRC(rc, "failed to get vertex ranks");
+
+  double * coords = (double*) malloc(3*nverts*sizeof(double));
+  rc = GetVisibleVerticesCoordinates( pid, 3*nverts, coords);
+  CHECKRC(rc, "failed to get coordinates");
+
   if (1==rank)
   {
     // printf some of the vertex id infos
     int numToPrint = nverts;
-    printf("on rank %d some vertex ranks:\n", rank);
+    printf("on rank %d some vertex info:\n", rank);
     for (int i=0; i<numToPrint; i++)
-      printf(" vertex local id: %3d, rank ID:%d  global ID: %3d \n",vLocalID[i], vranks[i], vGlobalID[i] );
+      printf(" vertex local id: %3d, rank ID:%d  global ID: %3d  coords: %g, %g, %g\n",vLocalID[i], vranks[i], vGlobalID[i],
+            coords[3*i], coords[3*i+1], coords[3*i+2]);
   }
 
+  iMOAB_GlobalID * gbIDs = (iMOAB_GlobalID*) malloc(nblocks*sizeof(iMOAB_GlobalID));
+  iMOAB_LocalID *  lbIDs = (iMOAB_LocalID*)  malloc(nblocks*sizeof(iMOAB_LocalID));
+  rc = GetBlockID(pid, nblocks, gbIDs, lbIDs);
+  CHECKRC(rc, "failed to get block info");
+  if (1==rank)
+  {
+    // printf some of the block info
+    printf("on rank %d some block info:\n", rank);
+    for (int i=0; i<nblocks; i++)
+    {
+      printf(" block index: %3d, block ID: %3d \n", lbIDs[i], gbIDs[i] );
+      int vertices_per_element, num_elements_in_block;
+      rc = GetBlockInfo(pid,  gbIDs[i] , &vertices_per_element, &num_elements_in_block);
+      CHECKRC(rc, "failed to elem block info");
+      printf("    has %4d elements with %d vertices per element\n",  num_elements_in_block, vertices_per_element);
+    }
+
+  }
+
+
+  // free allocated data
+  free(coords);
   free (vGlobalID);
   free (vLocalID);
   free (vranks);
