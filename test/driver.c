@@ -1,6 +1,8 @@
 
 #include "mpi.h"
 #include  "../src/moab/imoab.h"
+// for malloc, free:
+#include <stdlib.h>
 #include <string.h>
 
 #define CHECKRC(rc, message)  if (0!=rc) { printf ("%s", message); return 1;}
@@ -45,7 +47,7 @@ int main(int argc, char * argv[])
   int nverts, nelem, nblocks, nsbc, ndbc;
   rc = GetMeshInfo(  pid, &nverts, &nelem, &nblocks, &nsbc, &ndbc);
   CHECKRC(rc, "failed to get mesh info");
-  if (0==rank)
+  if (1==rank)
   {
     printf("on rank %d, there are \n"
         "  %d visible vertices\n"
@@ -55,6 +57,33 @@ int main(int argc, char * argv[])
         "  %d visible dirichlet sets\n", rank, nverts, nelem, nblocks, nsbc, ndbc);
   }
 
+  iMOAB_GlobalID * vGlobalID = (iMOAB_GlobalID*)malloc(nverts*sizeof(iMOAB_GlobalID)) ;
+  iMOAB_LocalID * vLocalID = (iMOAB_LocalID*)malloc(nverts*sizeof(iMOAB_GlobalID)) ;
+  rc = GetVertexID(pid, nverts, vGlobalID, vLocalID );
+  CHECKRC(rc, "failed to get vertex id info");
+  if (1==rank)
+  {
+    // printf some of the vertex id infos
+    int numToPrint = nverts/10;
+    printf("on rank %d some vertex global ids:\n", rank);
+    for (int i=0; i<numToPrint; i++)
+      printf(" vertex local id: %d, global ID: %d\n",vLocalID[i], vGlobalID[i] );
+  }
+
+  int * vranks = (int*)malloc(nverts*sizeof(int));
+  rc =GetVertexOwnership(pid, nverts, vranks );
+  CHECKRC(rc, "failed to get vertex ranks");
+  if (1==rank)
+  {
+    // printf some of the vertex id infos
+    int numToPrint = nverts/10;
+    printf("on rank %d some vertex ranks:\n", rank);
+    for (int i=0; i<numToPrint; i++)
+      printf(" vertex local id: %d, rank ID: %d \n",vLocalID[i], vranks[i] );
+  }
+
+  free (vGlobalID);
+  free (vLocalID);
   char outputFile[] = "fnew.h5m";
   char writeOptions[] ="PARALLEL=WRITE_PART";
   rc = WriteMesh(pid, outputFile, writeOptions,

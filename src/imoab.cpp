@@ -464,7 +464,7 @@ ErrCode GetMeshInfo( iMOAB_AppID pid, int* num_visible_vertices, int* num_visibl
   return 0;
 }
 
-#if 0
+
 /**
   \fn ErrorCode GetVertexID( iMOAB_AppID pid, int vertices_length, iMOAB_GlobalID* global_vertex_ID, iMOAB_LocalID* local_vertex_ID )
   \brief Get the global vertex ID for all locally visible (owned and shared/ghosted) vertices
@@ -476,8 +476,21 @@ ErrCode GetMeshInfo( iMOAB_AppID pid, int* num_visible_vertices, int* num_visibl
   \param[out] global_vertex_ID (iMOAB_GlobalID*)  The global IDs for all locally visible vertices (array allocated by client)
   \param[out] local_vertex_ID (iMOAB_LocalID*)    (<I><TT>Optional</TT></I>) The local IDs for all locally visible vertices (array allocated by client)
 */
-ErrorCode GetVertexID( iMOAB_AppID pid, int vertices_length, iMOAB_GlobalID* global_vertex_ID, iMOAB_LocalID* local_vertex_ID );
-
+ErrCode GetVertexID( iMOAB_AppID pid, int vertices_length, iMOAB_GlobalID* global_vertex_ID, iMOAB_LocalID* local_vertex_ID )
+{
+//
+  Range & verts = appDatas[*pid].all_verts;
+  // global id tag is gtags[3]
+  ErrorCode rval = MBI->tag_get_data(gtags[3], verts, global_vertex_ID);
+  if (MB_SUCCESS!=rval)
+    return 1;
+  int i=0;
+  for (Range::iterator vit=verts.begin(); vit!=verts.end(); vit++, i++)
+    local_vertex_ID[i]=i;
+  if (i!=vertices_length)
+    return 1; // problem with array length
+  return 0;
+}
 /**
   \fn ErrorCode GetVertexOwnership( iMOAB_AppID pid, int vertices_length, int* visible_global_rank_ID )
   \brief Get vertex ownership information i.e., for each vertex based on the local ID, return the process that owns the vertex (local, shared or ghost)
@@ -492,8 +505,23 @@ ErrorCode GetVertexID( iMOAB_AppID pid, int vertices_length, iMOAB_GlobalID* glo
   \param[in]  vertices_length (int)         The allocated size of array (typically <TT>size := num_visible_vertices</TT>)
   \param[out] visible_global_rank_ID (int*) The processor rank owning each of the local vertices 
 */
-ErrorCode GetVertexOwnership( iMOAB_AppID pid, int vertices_length, int* visible_global_rank_ID );
+ErrCode GetVertexOwnership( iMOAB_AppID pid, int vertices_length, int* visible_global_rank_ID )
+{
+  Range & verts = appDatas[*pid].all_verts;
+  ParallelComm * pco = pcomms[*pid];
+  int i=0;
+  for (Range::iterator vit=verts.begin(); vit!=verts.end(); vit++, i++)
+  {
+    ErrorCode rval = pco->  get_owner(*vit, visible_global_rank_ID[i]);
+    if (MB_SUCCESS!=rval)
+      return 1;
+  }
+  if (i!=vertices_length)
+    return 1; // warning array allocation problem
 
+  return 0;
+}
+#if 0
 /**
   \fn ErrorCode GetVisibleVerticesCoordinates( iMOAB_AppID pid, int coords_length, double* coordinates )
   \brief Get vertex coordinates for all local (owned and ghosted) vertices
@@ -504,6 +532,7 @@ ErrorCode GetVertexOwnership( iMOAB_AppID pid, int vertices_length, int* visible
   \param[in]  coords_length (int)   The size of the allocated coordinate array (array allocated by client, <TT>size := 3*num_visible_vertices</TT>)
   \param[out] coordinates (double*) The pointer to client allocated memory that will be filled with interleaved coordinates (do need an option for blocked coordinates ?)
 */
+
 ErrorCode GetVisibleVerticesCoordinates( iMOAB_AppID pid, int coords_length, double* coordinates );
 
 /**
