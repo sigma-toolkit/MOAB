@@ -631,7 +631,7 @@ ErrCode GetBlockInfo(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID,
 
   return 0;
 }
-#if 0
+
 /** 
   \fn ErrorCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int connectivity_length, int* element_connectivity)
   \brief Get the connectivity for elements within a certain block, ordered based on global element IDs
@@ -643,7 +643,35 @@ ErrCode GetBlockInfo(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID,
   \param[in]  connectivity_length (int)         The allocated size of array (typical <TT>size := vertices_per_element*num_visible_elements</TT>)
   \param[out] element_connectivity (int*)       The connectivity array to store element ordering in MOAB canonical numbering scheme (array allocated by client); array contains vertex identifiers with global ID numbering
 */
-ErrorCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int connectivity_length, int* element_connectivity);
+ErrCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int connectivity_length, int* element_connectivity)
+{
+  std::map<int, int> & matMap = appDatas[*pid].matIndex;
+  std::map<int,int>::iterator it = matMap.find(global_block_ID);
+  if (it==matMap.end())
+    return 1; // error in finding block with id
+  int blockIndex = matMap[global_block_ID];
+  EntityHandle matMeshSet = appDatas[*pid].mat_sets[blockIndex];
+  std::vector<EntityHandle> elems;
+
+  ErrorCode rval = MBI-> get_entities_by_handle(matMeshSet, elems);
+  if (MB_SUCCESS!=rval ||  elems.empty() )
+    return 1;
+
+
+  std::vector<EntityHandle> vconnect;
+  rval = MBI->get_connectivity(&elems[0], elems.size(), vconnect);
+  if (MB_SUCCESS!=rval)
+    return 1;
+  if (connectivity_length!=(int)vconnect.size())
+    return 1; // mismatched sizes
+
+  //gtags[3] is global id tag
+  rval = MBI->tag_get_data(gtags[3], &vconnect[0], connectivity_length, element_connectivity);
+  if (MB_SUCCESS!=rval)
+    return 1;
+
+  return 0;
+}
 
 /**
   \fn ErrorCode GetElementOwnership(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int num_elements_in_block, int* element_ownership)
@@ -656,7 +684,33 @@ ErrorCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID
   \param[in]  num_elements_in_block (int)       The allocated size of ownership array, same as <TT>num_elements_in_block</TT> returned from GetBlockInfo()
   \param[out] element_ownership (int*)          The ownership array to store processor ID for all elements (array allocated by client) 
 */
-ErrorCode GetElementOwnership(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int num_elements_in_block, int* element_ownership);
+ErrCode GetElementOwnership(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int num_elements_in_block, int* element_ownership)
+{
+  std::map<int, int> & matMap = appDatas[*pid].matIndex;
+  ParallelComm * pco = pcomms[*pid];
+
+  std::map<int,int>::iterator it = matMap.find(global_block_ID);
+  if (it==matMap.end())
+    return 1; // error in finding block with id
+  int blockIndex = matMap[global_block_ID];
+  EntityHandle matMeshSet = appDatas[*pid].mat_sets[blockIndex];
+  Range elems;
+
+  ErrorCode rval = MBI-> get_entities_by_handle(matMeshSet, elems);
+  if (MB_SUCCESS!=rval ||  elems.empty() )
+    return 1;
+
+  if (num_elements_in_block!=(int)elems.size())
+    return 1; // bad memory allocation
+  int i=0;
+  for (Range::iterator vit=elems.begin(); vit!=elems.end(); vit++, i++)
+  {
+    rval = pco->  get_owner(*vit, element_ownership[i]);
+    if (MB_SUCCESS!=rval)
+      return 1;
+  }
+  return 0;
+}
 
 /**
   \fn ErrorCode GetElementID(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int num_elements_in_block, iMOAB_GlobalID* global_element_ID, iMOAB_LocalID* local_element_ID)
@@ -670,8 +724,32 @@ ErrorCode GetElementOwnership(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, i
   \param[out] global_element_ID (iMOAB_GlobalID*) The global IDs for all locally visible elements (array allocated by client)
   \param[out] local_element_ID (iMOAB_LocalID*)   (<I><TT>Optional</TT></I>) The local IDs for all locally visible elements (array allocated by client)
 */
-ErrorCode GetElementID(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int num_elements_in_block, iMOAB_GlobalID* global_element_ID, iMOAB_LocalID* local_element_ID);
+ErrCode GetElementID(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int num_elements_in_block, iMOAB_GlobalID* global_element_ID, iMOAB_LocalID* local_element_ID)
+{
+  std::map<int, int> & matMap = appDatas[*pid].matIndex;
 
+  std::map<int,int>::iterator it = matMap.find(global_block_ID);
+  if (it==matMap.end())
+    return 1; // error in finding block with id
+  int blockIndex = matMap[global_block_ID];
+  EntityHandle matMeshSet = appDatas[*pid].mat_sets[blockIndex];
+  Range elems;
+  ErrorCode rval = MBI-> get_entities_by_handle(matMeshSet, elems);
+  if (MB_SUCCESS!=rval ||  elems.empty() )
+    return 1;
+
+  if (num_elements_in_block!=(int)elems.size())
+    return 1; // bad memory allocation
+
+  rval = MBI->tag_get_data(gtags[3], elems, global_element_ID);
+  if (MB_SUCCESS!=rval )
+    return 1;
+  for (int i=0; i<num_elements_in_block; i++)
+    local_element_ID[i]=i;
+
+  return 0;
+}
+#if 0
 /**
   \fn ErrorCode GetPointerToSurfaceBC(iMOAB_AppID pid, int surface_BC_length, iMOAB_GlobalID* global_element_ID, int* reference_surface_ID, int* boundary_condition_value)
   \brief Get the surface boundary condition information
