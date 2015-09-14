@@ -61,14 +61,6 @@ int main(int argc, char * argv[])
   iMOAB_LocalID * vLocalID = (iMOAB_LocalID*)malloc(nverts*sizeof(iMOAB_GlobalID)) ;
   rc = GetVertexID(pid, nverts, vGlobalID, vLocalID );
   CHECKRC(rc, "failed to get vertex id info");
-  if (1==rank)
-  {
-    // printf some of the vertex id infos
-    int numToPrint = nverts/10;
-    printf("on rank %d some vertex global ids:\n", rank);
-    for (int i=0; i<numToPrint; i++)
-      printf(" vertex local id: %d, global ID: %d\n",vLocalID[i], vGlobalID[i] );
-  }
 
   int * vranks = (int*)malloc(nverts*sizeof(int));
   rc =GetVertexOwnership(pid, nverts, vranks );
@@ -76,14 +68,15 @@ int main(int argc, char * argv[])
   if (1==rank)
   {
     // printf some of the vertex id infos
-    int numToPrint = nverts/10;
+    int numToPrint = nverts;
     printf("on rank %d some vertex ranks:\n", rank);
     for (int i=0; i<numToPrint; i++)
-      printf(" vertex local id: %d, rank ID: %d \n",vLocalID[i], vranks[i] );
+      printf(" vertex local id: %3d, rank ID:%d global ID: %3d \n",vLocalID[i], vranks[i], vGlobalID[i] );
   }
 
   free (vGlobalID);
   free (vLocalID);
+  free (vranks);
   char outputFile[] = "fnew.h5m";
   char writeOptions[] ="PARALLEL=WRITE_PART";
   rc = WriteMesh(pid, outputFile, writeOptions,
