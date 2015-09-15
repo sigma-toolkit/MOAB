@@ -53,8 +53,8 @@ int main(int argc, char * argv[])
         "  %d visible vertices\n"
         "  %d visible elements\n"
         "  %d visible blocks\n"
-        "  %d visible neumann sets\n"
-        "  %d visible dirichlet sets\n", rank, nverts, nelem, nblocks, nsbc, ndbc);
+        "  %d visible neumann BCs\n"
+        "  %d visible dirichlet BCs\n", rank, nverts, nelem, nblocks, nsbc, ndbc);
   }
 
   iMOAB_GlobalID * vGlobalID = (iMOAB_GlobalID*)malloc(nverts*sizeof(iMOAB_GlobalID)) ;

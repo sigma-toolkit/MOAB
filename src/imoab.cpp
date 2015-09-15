@@ -35,6 +35,7 @@ struct appData {
   EntityHandle file_set;
   Range all_verts;
   Range primary_elems;
+  int dimension; // 2 or 3, dimension of primary elements (redundant?)
   Range mat_sets;
   std::map<int, int> matIndex; // map from global block id to index in mat_sets
   Range neu_sets;
@@ -448,31 +449,72 @@ ErrCode GetMeshInfo( iMOAB_AppID pid, int* num_visible_vertices, int* num_visibl
   // this will include ghost elements
   // we should keep a data structure with mesh, sets, etc, for each pid
   //
-  EntityHandle fileSet=appDatas[*pid].file_set;
+  appData & data = appDatas[*pid];
+  EntityHandle fileSet=data.file_set;
   ErrorCode rval = MBI->get_entities_by_type(fileSet, MBVERTEX, appDatas[*pid].all_verts, true); // recursive
   if (MB_SUCCESS!=rval)
     return 1;
-  *num_visible_vertices = (int) appDatas[*pid].all_verts.size();
+  *num_visible_vertices = (int) data.all_verts.size();
   // is dimension 3?
-  rval = MBI->get_entities_by_dimension(fileSet, 3, appDatas[*pid].primary_elems, true); // recursive
+  rval = MBI->get_entities_by_dimension(fileSet, 3, data.primary_elems, true); // recursive
   if (MB_SUCCESS!=rval)
     return 1;
-  *num_visible_elements = (int) appDatas[*pid].primary_elems.size();
+  data.dimension = 3;
+  if (data.primary_elems.empty())
+  {
+    appDatas[*pid].dimension = 2;
+    rval = MBI->get_entities_by_dimension(fileSet, 2, data.primary_elems, true); // recursive
+    if (MB_SUCCESS!=rval)
+      return 1;
+    if (data.primary_elems.empty())
+      return 1; // no elements of dimension 2 or 3
+  }
+  *num_visible_elements = (int) data.primary_elems.size();
 
   // get all blocks, BCs, etc
-  rval = MBI->get_entities_by_type_and_tag(fileSet, MBENTITYSET, &(gtags[0]), 0, 1, appDatas[*pid].mat_sets , Interface::UNION);
+  rval = MBI->get_entities_by_type_and_tag(fileSet, MBENTITYSET, &(gtags[0]), 0, 1, data.mat_sets , Interface::UNION);
   if (MB_SUCCESS!=rval)
     return 1;
-  *num_visible_blocks = (int)appDatas[*pid].mat_sets.size();
-  rval = MBI->get_entities_by_type_and_tag(fileSet, MBENTITYSET, &(gtags[1]), 0, 1, appDatas[*pid].neu_sets , Interface::UNION);
+  *num_visible_blocks = data.mat_sets.size();
+  rval = MBI->get_entities_by_type_and_tag(fileSet, MBENTITYSET, &(gtags[1]), 0, 1, data.neu_sets , Interface::UNION);
   if (MB_SUCCESS!=rval)
     return 1;
-  *num_visible_surfaceBC = (int)appDatas[*pid].neu_sets.size();
+  *num_visible_surfaceBC = 0;
+  // count how many faces are in each neu set, and how many regions are
+  // adjacent to them;
+  int numNeuSets = (int)data.neu_sets.size();
+  for (int i=0; i<numNeuSets; i++)
+  {
+    Range subents;
+    EntityHandle nset = data.neu_sets[i];
+    rval = MBI->get_entities_by_dimension(nset, data.dimension-1, subents);
+    if (MB_SUCCESS!=rval)
+      return 1;
+    for (Range::iterator it=subents.begin(); it!=subents.end(); ++it)
+    {
+      EntityHandle subent = *it;
+      Range adjPrimaryEnts;
+      rval = MBI->get_adjacencies(&subent, 1, data.dimension, false, adjPrimaryEnts);
+      if (MB_SUCCESS!=rval)
+        return 1;
+      *num_visible_surfaceBC += (int)adjPrimaryEnts.size();
+    }
+  }
+  rval = MBI->get_entities_by_type_and_tag(fileSet, MBENTITYSET, &(gtags[2]), 0, 1, data.diri_sets , Interface::UNION);
+  if (MB_SUCCESS!=rval)
+    return 1;
+  *num_visible_vertexBC= 0;
+  int numDiriSets = (int)data.diri_sets.size();
+  for (int i=0; i<numDiriSets; i++)
+  {
+    Range verts;
+    EntityHandle diset = data.diri_sets[i];
+    rval = MBI->get_entities_by_dimension(diset, 0, verts);
+    if (MB_SUCCESS!=rval)
+      return 1;
+    *num_visible_vertexBC += (int)verts.size();
+  }
 
-  rval = MBI->get_entities_by_type_and_tag(fileSet, MBENTITYSET, &(gtags[2]), 0, 1, appDatas[*pid].diri_sets , Interface::UNION);
-  if (MB_SUCCESS!=rval)
-    return 1;
-  *num_visible_vertexBC= (int)appDatas[*pid].diri_sets.size();
 
   return 0;
 }
