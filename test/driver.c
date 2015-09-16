@@ -83,11 +83,14 @@ int main(int argc, char * argv[])
     {
       // printf some of the block info
       printf("on rank %d, there are \n"
-              "  %d visible vertices\n"
-              "  %d visible elements\n"
-              "  %d visible blocks\n"
-              "  %d visible neumann BCs\n"
-              "  %d visible dirichlet BCs\n", rank, nverts[2], nelem[2], nblocks[2], nsbc[2], ndbc[2]);
+              "  %3d visible vertices of which  %3d local  %3d ghost \n"
+              "  %3d visible elements of which  %3d owned  %3d ghost \n"
+              "  %3d visible blocks\n"
+              "  %3d visible neumann BCs\n"
+              "  %3d visible dirichlet BCs\n", rank,
+              nverts[2], nverts[0], nverts[1],
+              nelem[2], nelem[0], nelem[1],
+              nblocks[2], nsbc[2], ndbc[2]);
       // printf some of the vertex id infos
       int numToPrint = nverts[2];
       printf("on rank %d vertex info:\n", rank);

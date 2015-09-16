@@ -482,6 +482,8 @@ ErrCode GetMeshInfo( iMOAB_AppID pid, int* num_visible_vertices, int* num_visibl
   if (MB_SUCCESS!=rval)
     return 1;
   data.ghost_vertices = subtract(data.all_verts, data.local_verts);
+  num_visible_vertices[0] = (int) data.local_verts.size();
+  num_visible_vertices[1] = (int) data.ghost_vertices.size();
   // get all blocks, BCs, etc
 
   // filter ghost elements, from local
@@ -490,6 +492,8 @@ ErrCode GetMeshInfo( iMOAB_AppID pid, int* num_visible_vertices, int* num_visibl
     return 1;
   data.ghost_elems = subtract(data.primary_elems, data.owned_elems);
     // get all blocks, BCs, etc
+  num_visible_elements[0] = (int)data.owned_elems.size();
+  num_visible_elements[1] = (int)data.ghost_elems.size();
 
   rval = MBI->get_entities_by_type_and_tag(fileSet, MBENTITYSET, &(gtags[0]), 0, 1, data.mat_sets , Interface::UNION);
   if (MB_SUCCESS!=rval)
