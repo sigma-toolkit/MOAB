@@ -120,7 +120,7 @@ int main(int argc, char * argv[])
         CHECKRC(rc, "failed to get block elem IDs");
         for (int j=0; j< num_elements_in_block; j++)
         {
-          printf("  elem %3d owned by %d gid: %4d -- ", j, element_ownership[j], global_element_ID[j]);
+          printf("  elem %3d owned by %d gid: %4d lid: %4d  -- ", j, element_ownership[j], global_element_ID[j], local_element_ID[j]);
           for (int k=0; k<vertices_per_element; k++)
             printf( " %5d", element_connectivity[j*vertices_per_element+k]);
           printf("\n");
