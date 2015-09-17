@@ -38,6 +38,17 @@ Comments from Mike and Emily:
 #define iMOAB_LocalID  int
 #define ErrCode        int
 
+/*
+ * tag types can be: dense/sparse, int/ double/entityhandle , they could be on both elements and vertices
+ */
+enum MOAB_TAG_TYPE { DENSE_INTEGER = 0,
+                     DENSE_DOUBLE ,
+                     DENSE_ENTITYHANDLE,
+                     SPARSE_INTEGER ,
+                     SPARSE_DOUBLE ,
+                     SPARSE_ENTITYHANDLE
+};
+
 /** 
   \fn ErrCode iMOABInitialize( int argc, iMOAB_String* argv )
   \brief Initialize the iMOAB interface implementation and create the MOAB instance, if not created already (reference counted).
@@ -323,11 +334,12 @@ ErrCode GetPointerToVertexBC(iMOAB_AppID pid, int * vertex_BC_length, iMOAB_Loca
 
    \param[in] pid (iMOAB_AppID)               The unique pointer to the application ID
    \param[in] tag_storage_name (iMOAB_String) The tag name to store/retreive the data in MOAB
-   \param[in] tag_type (int*)                 The type of MOAB tag (Dense/Sparse on Vertices/Elements, Double/Int/EntityHandle)
+   \param[in] tag_type (int*)                 The type of MOAB tag (Dense/Sparse, Double/Int/EntityHandle)
    \param[in] components_per_entity (int*)    The total size of vector dimension per entity for the tag (e.g., number of doubles per entity)
+   \param[out] tag_storage_data (int*)                 The array data of type <I>int</I> to be copied from the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in] tag_storage_name_length (int)   The length of the tag_storage_name string
 */
-ErrCode DefineTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int* tag_type, int* components_per_entity, int tag_storage_name_length);
+ErrCode DefineTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int* tag_type, int* components_per_entity, int * tag_index, int tag_storage_name_length);
 
 /**
    \fn ErrCode SetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int num_tag_storage_length, int* tag_storage_data, int tag_storage_name_length)
@@ -337,11 +349,12 @@ ErrCode DefineTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int* ta
 
    \param[in]  pid (iMOAB_AppID)                       The unique pointer to the application ID
    \param[in]  tag_storage_name (iMOAB_String)         The tag name to store/retreive the data in MOAB
-   \param[in]  num_tag_storage_length (int)            The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
+   \param[in]  num_tag_storage_length (int*)           The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
+   \param[in]  entity_type (int*)                      type 0 for vertices, 1 for primary elements
    \param[out] tag_storage_data (int*)                 The array data of type <I>int</I> to replace the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (iMOAB_String)  The length of the tag_storage_name string
 */
-ErrCode SetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int num_tag_storage_length, int* tag_storage_data, int tag_storage_name_length);
+ErrCode SetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int * num_tag_storage_length, int * ent_type, int* tag_storage_data, int tag_storage_name_length);
 
 /**
    \fn ErrCode GetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int num_tag_storage_length, int* tag_storage_data, int tag_storage_name_length)
@@ -351,11 +364,12 @@ ErrCode SetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int num
 
    \param[in]  pid (iMOAB_AppID)                       The unique pointer to the application ID
    \param[in]  tag_storage_name (iMOAB_String)         The tag name to store/retreive the data in MOAB
-   \param[in]  num_tag_storage_length (int)            The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
+   \param[in]  num_tag_storage_length (int*)            The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
+   \param[in]  entity_type (int*)                      type 0 for vertices, 1 for primary elements
    \param[out] tag_storage_data (int*)                 The array data of type <I>int</I> to be copied from the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (iMOAB_String)  The length of the tag_storage_name string
 */
-ErrCode GetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int num_tag_storage_length, int* tag_storage_data, int tag_storage_name_length);
+ErrCode GetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int *num_tag_storage_length, int * ent_type, int* tag_storage_data, int tag_storage_name_length);
 
 /**
    \fn ErrCode SetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int num_tag_storage_length, double* tag_storage_data, int tag_storage_name_length)
@@ -365,11 +379,12 @@ ErrCode GetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int num
 
    \param[in]  pid (iMOAB_AppID)                       The unique pointer to the application ID
    \param[in]  tag_storage_name (iMOAB_String)         The tag name to store/retreive the data in MOAB
-   \param[in]  num_tag_storage_length (int)            The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
+   \param[in]  num_tag_storage_length (int*)            The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
+   \param[in]  entity_type (int*)                      type 0 for vertices, 1 for primary elements
    \param[out] tag_storage_data (double*)              The array data of type <I>double</I> to replace the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (iMOAB_String)  The length of the tag_storage_name string
 */
-ErrCode SetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int num_tag_storage_length, double* tag_storage_data, int tag_storage_name_length);
+ErrCode SetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int * num_tag_storage_length, int * ent_type, double* tag_storage_data, int tag_storage_name_length);
 
 /**
    \fn ErrCode GetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int num_tag_storage_length, double* tag_storage_data, int tag_storage_name_length)
@@ -380,10 +395,24 @@ ErrCode SetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int 
    \param[in]  pid (iMOAB_AppID)                The unique pointer to the application ID
    \param[in]  tag_storage_name (iMOAB_String)  The tag name to store/retreive the data in MOAB
    \param[in]  num_tag_storage_length (int)     The size of tag storage data (e.g., num_visible_vertices*components_per_entity or num_visible_elements*components_per_entity)
+   \param[in]  entity_type (int*)                      type 0 for vertices, 1 for primary elements
    \param[out] tag_storage_data (double*)       The array data of type <I>double</I> to be copied from the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (int)    The length of the tag_storage_name string
 */
-ErrCode GetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int num_tag_storage_length, double* tag_storage_data, int tag_storage_name_length);
+ErrCode GetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int * num_tag_storage_length, int * ent_type, double* tag_storage_data, int tag_storage_name_length);
+
+/**
+   \fn ErrCode SynchronizeTags(iMOAB_AppID pid,  int * num_tags, int * tag_indices, int * ent_type )
+   \brief Exchange tag values for given tags
+
+   <B>Operations:</B> Collective
+
+   \param[in]  pid (iMOAB_AppID)                The unique pointer to the application ID
+   \param[in]  num_tags (int*)                  Number of tags to exchange
+   \param[in]  tag_indices (int*)               Array with tag indices of interest (size  = *num_tags)
+   \param[in]  ent_type (int*)                  type of entity for tag exchange
+  */
+ErrCode SynchronizeTags(iMOAB_AppID pid, int * num_tag, int * tag_indices, int * ent_type);
 
 /**
    \fn ErrCode GetNeighborElements(iMOAB_AppID pid, iMOAB_GlobalID global_element_ID, int* num_adjacent_elements, iMOAB_GlobalID* adjacent_element_IDs)
