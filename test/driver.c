@@ -112,7 +112,7 @@ int main(int argc, char * argv[])
         CHECKRC(rc, "failed to get block elem connectivity");
         int * element_ownership = (int*) malloc (sizeof(int)*num_elements_in_block);
 
-        GetElementOwnership(pid, &gbIDs[i], &num_elements_in_block,  element_ownership);
+        rc = GetElementOwnership(pid, &gbIDs[i], &num_elements_in_block,  element_ownership);
         CHECKRC(rc, "failed to get block elem ownership");
         iMOAB_GlobalID* global_element_ID = (iMOAB_GlobalID*)malloc(sizeof(iMOAB_GlobalID)*num_elements_in_block);
         iMOAB_LocalID* local_element_ID =(iMOAB_LocalID*)malloc(sizeof(iMOAB_LocalID)*num_elements_in_block);
