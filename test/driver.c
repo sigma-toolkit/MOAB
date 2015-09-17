@@ -63,19 +63,20 @@ int main(int argc, char * argv[])
   CHECKRC(rc, "failed to get mesh info");
 
   iMOAB_GlobalID * vGlobalID = (iMOAB_GlobalID*)malloc(nverts[2]*sizeof(iMOAB_GlobalID)) ;
-  rc = GetVertexID(pid, nverts[2], vGlobalID);
+  rc = GetVertexID(pid, &nverts[2], vGlobalID);
   CHECKRC(rc, "failed to get vertex id info");
 
   int * vranks = (int*)malloc(nverts[2]*sizeof(int));
-  rc =GetVertexOwnership(pid, nverts[2], vranks );
+  rc =GetVertexOwnership(pid, &nverts[2], vranks );
   CHECKRC(rc, "failed to get vertex ranks");
 
   double * coords = (double*) malloc(3*nverts[2]*sizeof(double));
-  rc = GetVisibleVerticesCoordinates( pid, 3*nverts[2], coords);
+  int size_coords= 3*nverts[2];
+  rc = GetVisibleVerticesCoordinates( pid, &size_coords, coords);
   CHECKRC(rc, "failed to get coordinates");
 
   iMOAB_GlobalID * gbIDs = (iMOAB_GlobalID*) malloc(nblocks[2]*sizeof(iMOAB_GlobalID));
-  rc = GetBlockID(pid, nblocks[2], gbIDs);
+  rc = GetBlockID(pid, &nblocks[2], gbIDs);
   CHECKRC(rc, "failed to get block info");
   for (int irank=0; irank<nprocs; irank++)
   {
@@ -102,21 +103,21 @@ int main(int argc, char * argv[])
       {
         printf(" block index: %3d, block ID: %3d \n", i, gbIDs[i] );
         int vertices_per_element, num_elements_in_block;
-        rc = GetBlockInfo(pid,  gbIDs[i] , &vertices_per_element, &num_elements_in_block);
+        rc = GetBlockInfo(pid,  &gbIDs[i] , &vertices_per_element, &num_elements_in_block);
         CHECKRC(rc, "failed to elem block info");
         printf("    has %4d elements with %d vertices per element\n",  num_elements_in_block, vertices_per_element);
         int size_conn= num_elements_in_block*vertices_per_element;
         iMOAB_LocalID * element_connectivity = (iMOAB_LocalID*) malloc (sizeof(iMOAB_LocalID)*size_conn);
-        rc = GetElementConnectivity(pid, gbIDs[i], size_conn, element_connectivity);
+        rc = GetElementConnectivity(pid, &gbIDs[i], &size_conn, element_connectivity);
         CHECKRC(rc, "failed to get block elem connectivity");
         int * element_ownership = (int*) malloc (sizeof(int)*num_elements_in_block);
 
-        GetElementOwnership(pid, gbIDs[i], num_elements_in_block,  element_ownership);
+        GetElementOwnership(pid, &gbIDs[i], &num_elements_in_block,  element_ownership);
         CHECKRC(rc, "failed to get block elem ownership");
         iMOAB_GlobalID* global_element_ID = (iMOAB_GlobalID*)malloc(sizeof(iMOAB_GlobalID)*num_elements_in_block);
         iMOAB_LocalID* local_element_ID =(iMOAB_LocalID*)malloc(sizeof(iMOAB_LocalID)*num_elements_in_block);
 
-        rc = GetElementID(pid, gbIDs[i], num_elements_in_block, global_element_ID, local_element_ID);
+        rc = GetElementID(pid, &gbIDs[i], &num_elements_in_block, global_element_ID, local_element_ID);
         CHECKRC(rc, "failed to get block elem IDs");
         for (int j=0; j< num_elements_in_block; j++)
         {
@@ -134,7 +135,7 @@ int main(int argc, char * argv[])
       iMOAB_LocalID * surfBC_ID = (iMOAB_LocalID*) malloc (sizeof(iMOAB_LocalID)*nsbc[2]);
       int * ref_surf = (int *)  malloc (sizeof(int)*nsbc[2]);
       int * bc_value = (int *)  malloc (sizeof(int)*nsbc[2]);
-      rc = GetPointerToSurfaceBC(pid, nsbc[2], surfBC_ID, ref_surf, bc_value);
+      rc = GetPointerToSurfaceBC(pid, &nsbc[2], surfBC_ID, ref_surf, bc_value);
       CHECKRC(rc, "failed to get surf boundary conditions");
       printf(" Surface boundary conditions:\n");
       for (int i=0; i<nsbc[2]; i++)
@@ -147,7 +148,7 @@ int main(int argc, char * argv[])
       // query vertex BCs
       iMOAB_LocalID * vertBC_ID = (iMOAB_LocalID*) malloc (sizeof(iMOAB_LocalID)*ndbc[2]);
       int * vertBC_value = (int *)  malloc (sizeof(int)*ndbc[2]);
-      rc = GetPointerToVertexBC(pid, ndbc[2], vertBC_ID, vertBC_value);
+      rc = GetPointerToVertexBC(pid, &ndbc[2], vertBC_ID, vertBC_value);
       CHECKRC(rc, "failed to get vertex boundary conditions");
       printf("  Vertex boundary conditions:\n");
       for (int i=0; i<ndbc[2]; i++)
