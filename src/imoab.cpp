@@ -695,7 +695,7 @@ ErrCode GetBlockInfo(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID,
 }
 
 /** 
-  \fn ErrorCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int connectivity_length, int* element_connectivity)
+  \fn ErrorCode GetBlockElementConnectivities(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int connectivity_length, int* element_connectivity)
   \brief Get the connectivity for elements within a certain block, ordered based on global element IDs
 
   <B>Operations:</B> Collective
@@ -705,7 +705,7 @@ ErrCode GetBlockInfo(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID,
   \param[in]  connectivity_length (int)         The allocated size of array (typical <TT>size := vertices_per_element*num_visible_elements</TT>)
   \param[out] element_connectivity (int*)       The connectivity array to store element ordering in MOAB canonical numbering scheme (array allocated by client); array contains vertex identifiers with global ID numbering
 */
-ErrCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID, int * connectivity_length, int* element_connectivity)
+ErrCode GetBlockElementConnectivities(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID, int * connectivity_length, int* element_connectivity)
 {
   appData & data =  appDatas[*pid];
   std::map<int, int> & matMap = data.matIndex;

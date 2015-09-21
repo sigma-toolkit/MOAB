@@ -125,7 +125,7 @@ int main(int argc, char * argv[])
         printf("    has %4d elements with %d vertices per element\n",  num_elements_in_block, vertices_per_element);
         int size_conn= num_elements_in_block*vertices_per_element;
         iMOAB_LocalID * element_connectivity = (iMOAB_LocalID*) malloc (sizeof(iMOAB_LocalID)*size_conn);
-        rc = GetElementConnectivity(pid, &gbIDs[i], &size_conn, element_connectivity);
+        rc = GetBlockElementConnectivities(pid, &gbIDs[i], &size_conn, element_connectivity);
         CHECKRC(rc, "failed to get block elem connectivity");
         int * element_ownership = (int*) malloc (sizeof(int)*num_elements_in_block);
 

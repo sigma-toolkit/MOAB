@@ -252,7 +252,7 @@ ErrCode GetBlockID( iMOAB_AppID pid, int * block_length, iMOAB_GlobalID* global_
 ErrCode GetBlockInfo(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID, int* vertices_per_element, int* num_elements_in_block);
 
 /** 
-  \fn ErrCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int connectivity_length, int* element_connectivity)
+  \fn ErrCode GetBlockElementConnectivities(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int connectivity_length, int* element_connectivity)
   \brief Get the connectivity for elements within a certain block;
 
 
@@ -265,7 +265,7 @@ ErrCode GetBlockInfo(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID, int* ver
     array contains vertex indices in the local numbering order for vertices
     elements are in the same order as provided by GetElementOwnership and GetElementID
 */
-ErrCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID, int * connectivity_length, int* element_connectivity);
+ErrCode GetBlockElementConnectivities(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID, int * connectivity_length, int* element_connectivity);
 
 /**
   \fn ErrCode GetElementOwnership(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int num_elements_in_block, int* element_ownership)
