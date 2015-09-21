@@ -1,6 +1,6 @@
 
 #include "mpi.h"
-#include  "../src/moab/imoab.h"
+#include "moab/iMOAB.h"
 // for malloc, free:
 #include <stdlib.h>
 #include <string.h>
