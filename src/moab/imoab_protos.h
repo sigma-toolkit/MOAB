@@ -6,16 +6,10 @@
 #define RegisterApplication registerapplication_
 
 #define RegisterFortranApplication registerfortranapplication_
+
+#define DeregisterApplication deregisterapplication_
+
 #if 0
-/**
-  \fn ErrCode DeregisterApplication( iMOAB_AppID pid )
-  \brief De-Register application: delete mesh (set) associated with the application ID
-
-  <B>Operations:</B> Collective
-
-  \param[in] pid (iMOAB_AppID) The unique pointer to the application ID
-*/
-ErrCode DeregisterApplication( iMOAB_AppID pid );
 
 /**
   \fn ErrCode ReadHeaderInfo ( iMOAB_String filename, int* num_global_vertices, int* num_global_elements, int* num_dimension, int* num_parts, int filename_length )

@@ -218,7 +218,11 @@ ErrCode RegisterFortranApplication( iMOAB_String app_name, int* comm, iMOAB_AppI
   *pid =  unused_pid++;
   appIdMap[name] = *pid;
   // now create ParallelComm and a file set for this application
-  ParallelComm * pco = new ParallelComm(MBI, *comm);
+  // convert from fortran communicator to a c communicator
+  // see transfer of handles
+  // http://www.mpi-forum.org/docs/mpi-2.2/mpi22-report/node361.htm
+  MPI_Comm ccomm = MPI_Comm_f2c( (MPI_Fint) *comm);
+  ParallelComm * pco = new ParallelComm(MBI, ccomm);
 
 #if 1
   int index = pco->get_id(); // t could be useful to get app id from pcomm instance ...
