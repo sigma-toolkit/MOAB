@@ -50,6 +50,10 @@ enum MOAB_TAG_TYPE { DENSE_INTEGER = 0,
                      SPARSE_ENTITYHANDLE
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** 
   \fn ErrCode iMOABInitialize( int argc, iMOAB_String* argv )
   \brief Initialize the iMOAB interface implementation and create the MOAB instance, if not created already (reference counted).
@@ -471,5 +475,9 @@ ErrCode GetNeighborElements(iMOAB_AppID pid, iMOAB_LocalID * local_index, int* n
    \param[out] adjacent_vertex_IDs (iMOAB_LocalID*)   The local element IDs of all adjacent vertices to the current one (typically, num_total_sides for internal elements or num_total_sides-num_sides_on_boundary for boundary elements)
 */
 ErrCode GetNeighborVertices(iMOAB_AppID pid, iMOAB_LocalID* local_vertex_ID, int* num_adjacent_vertices, iMOAB_LocalID* adjacent_vertex_IDs);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

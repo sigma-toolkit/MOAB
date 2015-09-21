@@ -27,6 +27,11 @@ copy it in this folder (imoab/src/mhdf) temporarily; after imoab is part of moab
 // global variables ; should they be organized in a structure, for easier references?
 // or how do we keep them global?
 
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 Interface * MBI = 0;
 // we should also have the default tags stored, initialized
 Tag gtags[5]; // material, neumann, dirichlet,  globalID, partition tag
@@ -1475,5 +1480,10 @@ ErrCode GetNeighborElements(iMOAB_AppID pid, iMOAB_LocalID * local_index, int* n
 ErrCode GetNeighborVertices(iMOAB_AppID pid, iMOAB_LocalID* local_vertex_ID, int* num_adjacent_vertices, iMOAB_LocalID* adjacent_vertex_IDs)
 {
   return 0;
+}
+#endif
+
+
+#ifdef __cplusplus
 }
 #endif
