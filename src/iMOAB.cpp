@@ -5,7 +5,7 @@
 using namespace moab;
 #include "mpi.h"
 
-#include "moab/imoab.h"
+#include "moab/iMOAB.h"
 /*
 this mhdf.h is not part of moab installation, but it is part of moab library
 copy it in this folder (imoab/src/mhdf) temporarily; after imoab is part of moab, it is not neded 
