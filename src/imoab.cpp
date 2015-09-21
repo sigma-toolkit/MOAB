@@ -694,6 +694,62 @@ ErrCode GetBlockInfo(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID,
   return 0;
 }
 
+/**
+  \fn ErrCode  GetVisibleElementsInfo(iMOAB_AppID pid, int* num_visible_elements, iMOAB_GlobalID * element_global_IDs, int * ranks, iMOAB_GlobalID * block_IDs)
+  \brief Get the elements information, global ids, ranks they belong to, block ids they belong to
+
+  <B>Operations:</B> Collective
+
+  \param[in]  pid (iMOAB_AppID)                     The unique pointer to the application ID
+  \param[in]  num_visible_elements (int*)           The global block ID of the set to be queried
+  \param[out] element_global_IDs (iMOAB_GlobalID*)  The number of vertices per element
+  \param[out] ranks (int*)                          The owning ranks of elements
+  \param[out] block_IDs (iMOAB_GlobalID*)           The block ids the elements belong
+*/
+ErrCode GetVisibleElementsInfo(iMOAB_AppID pid, int* num_visible_elements,
+    iMOAB_GlobalID * element_global_IDs, int * ranks, iMOAB_GlobalID * block_IDs)
+{
+  appData & data =  appDatas[*pid];
+  ParallelComm * pco = pcomms[*pid];
+  ErrorCode rval = MBI-> tag_get_data(gtags[3], data.primary_elems, element_global_IDs);
+  if (MB_SUCCESS!=rval)
+    return 1;
+
+  int i=0;
+  for (Range::iterator eit=data.primary_elems.begin(); eit!=data.primary_elems.end(); ++eit, ++i)
+  {
+    rval = pco->get_owner(*eit, ranks[i]);
+    if (MB_SUCCESS!=rval)
+      return 1;
+  }
+  for (Range::iterator mit=data.mat_sets.begin(); mit!=data.mat_sets.end(); ++mit)
+  {
+    EntityHandle matMeshSet = *mit;
+    Range elems;
+    rval = MBI-> get_entities_by_handle(matMeshSet, elems);
+    if (MB_SUCCESS!=rval )
+      return 1;
+    int valMatTag;
+    rval = MBI->tag_get_data(gtags[0], &matMeshSet, 1, &valMatTag);
+    if (MB_SUCCESS!=rval )
+      return 1;
+
+    for (Range::iterator eit=elems.begin(); eit!=elems.end(); ++eit)
+    {
+      EntityHandle eh=*eit;
+      int index=data.primary_elems.index(eh);
+      if (-1==index)
+        return 1;
+      if (-1>= *num_visible_elements)
+        return 1;
+      block_IDs[index]=valMatTag;
+    }
+  }
+
+
+  return 0;
+}
+
 /** 
   \fn ErrorCode GetBlockElementConnectivities(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int connectivity_length, int* element_connectivity)
   \brief Get the connectivity for elements within a certain block, ordered based on global element IDs
@@ -741,6 +797,42 @@ ErrCode GetBlockElementConnectivities(iMOAB_AppID pid, iMOAB_GlobalID * global_b
       return 1; // error, vertex not in local range
     element_connectivity[i] = inx;
   }
+  return 0;
+}
+
+/**
+  \fn ErrCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_LocalID * elem_index, int * connectivity_length, int* element_connectivity)
+  \brief Get the connectivity for one element
+
+  <B>Operations:</B> Collective
+
+  \param[in]  pid (iMOAB_AppID)                 The unique pointer to the application ID
+  \param[in]  elem_index (iMOAB_LocalID *)      Local element index
+  \param[in]  connectivity_length (int)         The allocated size of array (max 27)
+  \param[out] element_connectivity (int*)       The connectivity array to store connectivity in MOAB canonical numbering scheme
+    array contains vertex indices in the local numbering order for vertices
+*/
+ErrCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_LocalID * elem_index, int * connectivity_length, int* element_connectivity)
+{
+  appData & data =  appDatas[*pid];
+  assert((*elem_index >=0)  && (*elem_index< (int)data.primary_elems.size()) );
+  EntityHandle eh = data.primary_elems[*elem_index];
+  int num_nodes;
+  const EntityHandle * conn;
+  ErrorCode rval = MBI->get_connectivity(eh, conn, num_nodes);
+  if (MB_SUCCESS!=rval)
+    return 1;
+  if (* connectivity_length < num_nodes)
+    return 1; // wrong number of vertices
+
+  for (int i=0; i<num_nodes; i++)
+  {
+    int index = data.all_verts.index(conn[i]);
+    if (-1==index)
+      return 1;
+    element_connectivity[i] = index;
+  }
+  * connectivity_length = num_nodes;
   return 0;
 }
 

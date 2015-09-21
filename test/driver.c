@@ -116,6 +116,30 @@ int main(int argc, char * argv[])
         printf(" vertex local id: %3d, rank ID:%d  global ID: %3d  coords: %g, %g, %g\n", i, vranks[i], vGlobalID[i],
               coords[3*i], coords[3*i+1], coords[3*i+2]);
 
+      iMOAB_GlobalID * element_global_IDs = (iMOAB_GlobalID*)malloc(nelem[2]*sizeof(iMOAB_GlobalID));
+      iMOAB_GlobalID * block_IDs = (iMOAB_GlobalID*)malloc(nelem[2]*sizeof(iMOAB_GlobalID));
+      int * ranks = (int*)malloc(nelem[2]*sizeof(int));
+      rc = GetVisibleElementsInfo(pid, &nelem[2], element_global_IDs, ranks, block_IDs);
+      CHECKRC(rc, "failed to get all elem info");
+      for (int i=0; i<nelem[2]; i++)
+        printf(" element local id: %3d,  global ID: %3d  rank:%d  block ID: %2d \n", i, element_global_IDs[i],
+            ranks[i], block_IDs[i]);
+      free(element_global_IDs);
+      free(ranks);
+      free(block_IDs);
+
+      // get first element connectivity
+      int conn[27];
+      int nv = 27;
+      int eindex = 0;
+      rc = GetElementConnectivity(pid, &eindex, &nv, conn);
+      CHECKRC(rc, "failed to get first element connectivity");
+      printf(" conn for first element: \n");
+      for (int i=0; i<nv; i++)
+        printf(" %3d", conn[i]);
+      printf("\n");
+
+
       for (int i=0; i<nblocks[2]; i++)
       {
         printf(" block index: %3d, block ID: %3d \n", i, gbIDs[i] );

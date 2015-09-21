@@ -251,6 +251,22 @@ ErrCode GetBlockID( iMOAB_AppID pid, int * block_length, iMOAB_GlobalID* global_
 */
 ErrCode GetBlockInfo(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID, int* vertices_per_element, int* num_elements_in_block);
 
+/**
+  \fn ErrCode  GetVisibleElementsInfo(iMOAB_AppID pid, int* num_visible_elements, iMOAB_GlobalID * element_global_IDs, int * ranks, iMOAB_GlobalID * block_IDs)
+  \brief Get the elements information, global ids, ranks they belong to, block ids they belong to
+
+  <B>Operations:</B> Collective
+
+  \param[in]  pid (iMOAB_AppID)                     The unique pointer to the application ID
+  \param[in]  num_visible_elements (int*)           The global block ID of the set to be queried
+  \param[out] element_global_IDs (iMOAB_GlobalID*)  The number of vertices per element
+  \param[out] ranks (int*)                          The owning ranks of elements
+  \param[out] block_IDs (iMOAB_GlobalID*)           The block ids the elements belong
+*/
+ErrCode GetVisibleElementsInfo(iMOAB_AppID pid, int* num_visible_elements,
+    iMOAB_GlobalID * element_global_IDs, int * ranks, iMOAB_GlobalID * block_IDs);
+
+
 /** 
   \fn ErrCode GetBlockElementConnectivities(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int connectivity_length, int* element_connectivity)
   \brief Get the connectivity for elements within a certain block;
@@ -259,13 +275,28 @@ ErrCode GetBlockInfo(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID, int* ver
   <B>Operations:</B> Collective
 
   \param[in]  pid (iMOAB_AppID)                 The unique pointer to the application ID
-  \param[in]  global_block_ID (iMOAB_GlobalID)  The global block ID of the set being queried
-  \param[in]  connectivity_length (int)         The allocated size of array (typical <TT>size := vertices_per_element*num_elements_in_block</TT>)
+  \param[in]  global_block_ID (iMOAB_GlobalID*) The global block ID of the set being queried
+  \param[in]  connectivity_length (int*)        The allocated size of array (typical <TT>size := vertices_per_element*num_elements_in_block</TT>)
   \param[out] element_connectivity (int*)       The connectivity array to store element ordering in MOAB canonical numbering scheme (array allocated by client);
     array contains vertex indices in the local numbering order for vertices
     elements are in the same order as provided by GetElementOwnership and GetElementID
 */
 ErrCode GetBlockElementConnectivities(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID, int * connectivity_length, int* element_connectivity);
+
+/**
+  \fn ErrCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_LocalID * elem_index, int * connectivity_length, int* element_connectivity)
+  \brief Get the connectivity for one element
+
+  <B>Operations:</B> Collective
+
+  \param[in]  pid (iMOAB_AppID)                 The unique pointer to the application ID
+  \param[in]  elem_index (iMOAB_LocalID *)      Local element index
+  \param[in/out]  connectivity_length (int *)   The allocated size of array (max 27)
+  \param[out] element_connectivity (int*)       The connectivity array to store connectivity in MOAB canonical numbering scheme
+    array contains vertex indices in the local numbering order for vertices
+*/
+ErrCode GetElementConnectivity(iMOAB_AppID pid, iMOAB_LocalID * elem_index, int * connectivity_length, int* element_connectivity);
+
 
 /**
   \fn ErrCode GetElementOwnership(iMOAB_AppID pid, iMOAB_GlobalID global_block_ID, int num_elements_in_block, int* element_ownership)
