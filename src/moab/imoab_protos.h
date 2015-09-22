@@ -1,9 +1,10 @@
 
-#define iMOAB_InitializeFortran  imoab_initializefortran_
-#define iMOAB_Finalize imoab_finalize_
-#define iMOAB_RegisterApplication imoab_registerapplication_
-#define iMOAB_RegisterFortranApplication imoab_registerfortranapplication_
-#define iMOAB_DeregisterApplication imoab_deregisterapplication_
+#define iMOAB_Initialize                     imoab_initialize_
+#define iMOAB_InitializeFortran              imoab_initializefortran_
+#define iMOAB_Finalize                       imoab_finalize_
+#define iMOAB_RegisterApplication            imoab_registerapplication_
+#define iMOAB_RegisterFortranApplication     imoab_registerfortranapplication_
+#define iMOAB_DeregisterApplication          imoab_deregisterapplication_
 #define iMOAB_ReadHeaderInfo                 imoab_readheaderinfo_
 #define iMOAB_LoadMesh                       imoab_loadmesh_
 #define iMOAB_WriteMesh                      imoab_writemesh_
