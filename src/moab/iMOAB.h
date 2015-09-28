@@ -317,18 +317,21 @@ ErrCode iMOAB_GetVisibleElementsInfo(iMOAB_AppID pid, int* num_visible_elements,
 */
 ErrCode iMOAB_GetBlockElementConnectivities(iMOAB_AppID pid, iMOAB_GlobalID * global_block_ID, int * connectivity_length, int* element_connectivity);
 
+
 /**
-  \brief Get the connectivity for one element
+  \brief Get the connectivity for one element only.
+
+  \note it was added for convenience, it should not be needed.
 
   <B>Operations:</B> Not Collective
+  \param[in]  pid (iMOAB_AppID)                 The unique pointer to the application ID.
+  \param[in]  elem_index (iMOAB_LocalID *)      Local element index.
+  \param[in,out] connectivity_length (int *)     On input, maximum length of connectivity. On output, actual length.
+  \param[out] element_connectivity (int*)       The connectivity array to store connectivity in MOAB canonical numbering scheme.
+   Array contains vertex indices in the local numbering order for vertices
 
-  \param[in]  pid (iMOAB_AppID)                 The unique pointer to the application ID
-  \param[in]  elem_index (iMOAB_LocalID *)      Local element index
-  \param[in/out]  connectivity_length (int *)   The allocated size of array (max 27)
-  \param[out] element_connectivity (int*)       The connectivity array to store connectivity in MOAB canonical numbering scheme
-    array contains vertex indices in the local numbering order for vertices
 */
-ErrCode iMOAB_GetElementConnectivity(iMOAB_AppID pid, iMOAB_LocalID * elem_index, int * connectivity_length, int* element_connectivity);
+ErrCode iMOAB_GetElementConnectivity(iMOAB_AppID pid, iMOAB_LocalID * elem_index, int * connectivity_length, int * element_connectivity);
 
 
 /**
@@ -421,7 +424,7 @@ ErrCode iMOAB_DefineTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, i
    \param[out] tag_storage_data (int*)                 The array data of type <I>int</I> to replace the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (iMOAB_String)  The length of the tag_storage_name string
 */
-ErrCode iMOAB_SetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int * num_tag_storage_length, int * ent_type, int* tag_storage_data, int tag_storage_name_length);
+ErrCode iMOAB_SetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int * num_tag_storage_length, int * entity_type, int* tag_storage_data, int tag_storage_name_length);
 
 /**
    \brief Get the specified values in a MOAB integer Tag.
@@ -435,7 +438,7 @@ ErrCode iMOAB_SetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, i
    \param[out] tag_storage_data (int*)                 The array data of type <I>int</I> to be copied from the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (iMOAB_String)  The length of the tag_storage_name string
 */
-ErrCode iMOAB_GetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int *num_tag_storage_length, int * ent_type, int* tag_storage_data, int tag_storage_name_length);
+ErrCode iMOAB_GetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int *num_tag_storage_length, int * entity_type, int* tag_storage_data, int tag_storage_name_length);
 
 /**
    \brief Store the specified values in a MOAB double Tag.
@@ -449,7 +452,7 @@ ErrCode iMOAB_GetIntTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, i
    \param[out] tag_storage_data (double*)              The array data of type <I>double</I> to replace the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (iMOAB_String)  The length of the tag_storage_name string
 */
-ErrCode iMOAB_SetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int * num_tag_storage_length, int * ent_type, double* tag_storage_data, int tag_storage_name_length);
+ErrCode iMOAB_SetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int * num_tag_storage_length, int * entity_type, double* tag_storage_data, int tag_storage_name_length);
 
 /**
    \brief Retrieve the specified values in a MOAB double Tag.
@@ -463,7 +466,7 @@ ErrCode iMOAB_SetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name
    \param[out] tag_storage_data (double*)       The array data of type <I>double</I> to be copied from the internal tag memory; The data is assumed to be contiguous over the local set of visible entities (either vertices or elements)
    \param[in]  tag_storage_name_length (int)    The length of the tag_storage_name string
 */
-ErrCode iMOAB_GetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int * num_tag_storage_length, int * ent_type, double* tag_storage_data, int tag_storage_name_length);
+ErrCode iMOAB_GetDoubleTagStorage(iMOAB_AppID pid, iMOAB_String tag_storage_name, int * num_tag_storage_length, int * entity_type, double* tag_storage_data, int tag_storage_name_length);
 
 /**
    \fn ErrCode iMOAB_SynchronizeTags(iMOAB_AppID pid,  int * num_tags, int * tag_indices, int * ent_type )
