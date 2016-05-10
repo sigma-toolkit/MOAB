@@ -3,7 +3,7 @@ AUTOMAKE_OPTIONS = foreign subdir-objects no-dependencies
 
 SUBDIRS = . io dual obb perf
 if HAVE_HDF5
-  SUBDIRS += h5file
+  SUBDIRS += h5file imoab
 endif
 if ENABLE_dagmc
   SUBDIRS += dagmc
