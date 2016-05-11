@@ -74,7 +74,7 @@ if HAVE_HDF5
 
 if PARALLEL
 # imoab tests
-  TESTS += driver fex
+  TESTS += imoab_test imoab_testF
 endif 
 endif
 
@@ -103,9 +103,9 @@ MOSTLYCLEANFILES = mb_write.g \
 # Tests and such
 
 test_Matrix3_SOURCES = test_Matrix3.cpp
-fex_SOURCES = fex.F
-fex_LDADD = $(LDADD) $(FCLIBS)
-driver_SOURCES = driver.cpp
+imoab_testF_SOURCES = imoab_testF.F
+imoab_testF_LDADD = $(LDADD) $(FCLIBS)
+imoab_test_SOURCES = imoab_test.cpp
 verdict_test_SOURCES = verdict_test.cpp
 range_test_SOURCES = range_test.cpp
 moab_test_SOURCES = MBTest.cpp
