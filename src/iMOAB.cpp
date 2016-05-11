@@ -2,24 +2,29 @@
 */
 
 #include "moab/Core.hpp"
+#include "moab/MOABConfig.h"
+
 using namespace moab;
-#include "mpi.h"
+
+#ifdef MOAB_HAVE_MPI
+#  include "moab_mpi.h"
+#  include "moab/ParallelComm.hpp"
+#endif
 
 #include "moab/iMOAB.h"
-/*
-this mhdf.h is not part of moab installation, but it is part of moab library
-copy it in this folder (imoab/src/mhdf) temporarily; after imoab is part of moab, it is not neded 
-*/
-#include "moab/mhdf.h"
-#include <stdio.h>
+
 /*
  this is needed so far because of direct access to hdf5/mhdf
   */
-
+#ifdef MOAB_HAVE_HDF5
+#include "mhdf.h"
 #include <H5Tpublic.h>
+#endif
+
+#include <stdio.h>
 
 #include <iostream>
-#include "moab/ParallelComm.hpp"
+
 #include "MBTagConventions.hpp"
 #include "moab/MeshTopoUtil.hpp"
 #include <sstream>
@@ -67,7 +72,11 @@ iMOAB_String * iArgv;
 int unused_pid =0;
 // std::vector<EntityHandle>  app_FileSets; // in order of creation
 std::map<std::string, int> appIdMap;     // from app string (uppercase) to app id
+
+#ifdef MOAB_HAVE_MPI
 std::vector<ParallelComm*> pcomms; // created in order of applications, one moab::ParallelComm for each
+#endif
+
 std::vector<appData> appDatas; // the same order as pcomms
 
 ErrCode iMOAB_Initialize( int argc, iMOAB_String* argv )
@@ -136,6 +145,7 @@ ErrCode iMOAB_RegisterApplication( iMOAB_String app_name, MPI_Comm* comm, iMOAB_
   *pid =  unused_pid++;
   appIdMap[name] = *pid;
   // now create ParallelComm and a file set for this application
+#ifdef MOAB_HAVE_MPI
   ParallelComm * pco = new ParallelComm(MBI, *comm);
 
 #if 1
@@ -143,6 +153,7 @@ ErrCode iMOAB_RegisterApplication( iMOAB_String app_name, MPI_Comm* comm, iMOAB_
   assert(index==*pid);
 #endif
   pcomms.push_back(pco);
+#endif
 
   // create now the file set that will be used for loading the model in
   EntityHandle file_set;
@@ -165,6 +176,7 @@ ErrCode iMOAB_RegisterFortranApplication( iMOAB_String app_name, int* comm, iMOA
   }
   *pid =  unused_pid++;
   appIdMap[name] = *pid;
+#ifdef MOAB_HAVE_MPI
   // now create ParallelComm and a file set for this application
   // convert from fortran communicator to a c communicator
   // see transfer of handles
@@ -173,10 +185,11 @@ ErrCode iMOAB_RegisterFortranApplication( iMOAB_String app_name, int* comm, iMOA
   ParallelComm * pco = new ParallelComm(MBI, ccomm);
 
 #if 1
-  int index = pco->get_id(); // t could be useful to get app id from pcomm instance ...
+  int index = pco->get_id(); // it could be useful to get app id from pcomm instance ...
   assert(index==*pid);
 #endif
   pcomms.push_back(pco);
+#endif
 
   // create now the file set that will be used for loading the model in
   EntityHandle file_set;
@@ -194,9 +207,7 @@ ErrCode iMOAB_DeregisterApplication( iMOAB_AppID pid )
 	// the file set , parallel comm are all in vectors indexed by *pid
   // assume we did not delete anything yet
   // *pid will not be reused if we register another application
-  ParallelComm * pco = pcomms[*pid];
-  // we could get the pco also with
-  // ParallelComm * pcomm = ParallelComm::get_pcomm(MBI, *pid);
+
   EntityHandle fileSet = appDatas[*pid].file_set;
   // get all entities part of the file set
   Range fileents;
@@ -209,7 +220,13 @@ ErrCode iMOAB_DeregisterApplication( iMOAB_AppID pid )
   rval = MBI->get_entities_by_type(fileSet, MBENTITYSET, fileents); // append all mesh sets
   if (MB_SUCCESS != rval )
     return 1;
+#ifdef MOAB_HAVE_MPI
+  ParallelComm * pco = pcomms[*pid];
+  // we could get the pco also with
+  // ParallelComm * pcomm = ParallelComm::get_pcomm(MBI, *pid);
   delete pco;
+#endif
+
   rval = MBI->delete_entities(fileents);
 
   if (MB_SUCCESS != rval )
@@ -220,6 +237,7 @@ ErrCode iMOAB_DeregisterApplication( iMOAB_AppID pid )
 
 ErrCode iMOAB_ReadHeaderInfo ( iMOAB_String filename, int* num_global_vertices, int* num_global_elements, int* num_dimension, int* num_parts, int filename_length )
 {
+#ifdef MOAB_HAVE_HDF5
   std::string filen(filename);
   if (filename_length< (int)filen.length())
   {
@@ -317,6 +335,11 @@ ErrCode iMOAB_ReadHeaderInfo ( iMOAB_String filename, int* num_global_vertices, 
   mhdf_closeFile( file, &status );
 
   free( data );
+
+#else
+  std::cout << " cannot retrieve header info except for h5m file \n";
+#endif
+
   return 0;
 }
 

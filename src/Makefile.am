@@ -180,7 +180,7 @@ nobase_libMOAB_la_include_HEADERS = \
   moab/Forward.hpp \
   moab/GeomUtil.hpp \
   moab/Interface.hpp \
-  moab/iMOAB.hpp \
+  moab/iMOAB.h \
   moab/imoab_protos.h \
   moab/LloydSmoother.hpp \
   moab/point_locater/tree/common_tree.hpp \

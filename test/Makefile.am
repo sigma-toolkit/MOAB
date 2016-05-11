@@ -3,7 +3,7 @@ AUTOMAKE_OPTIONS = foreign subdir-objects no-dependencies
 
 SUBDIRS = . io dual obb perf
 if HAVE_HDF5
-  SUBDIRS += h5file imoab
+  SUBDIRS += h5file 
 endif
 if ENABLE_dagmc
   SUBDIRS += dagmc
@@ -71,6 +71,11 @@ if HAVE_HDF5
         mbground_test \
         lloyd_smoother_test \
         mhdf_public_test
+
+if PARALLEL
+# imoab tests
+  TESTS += driver fex
+endif 
 endif
 
 
@@ -98,6 +103,9 @@ MOSTLYCLEANFILES = mb_write.g \
 # Tests and such
 
 test_Matrix3_SOURCES = test_Matrix3.cpp
+fex_SOURCES = fex.F
+fex_LDADD = $(LDADD) $(FCLIBS)
+driver_SOURCES = driver.cpp
 verdict_test_SOURCES = verdict_test.cpp
 range_test_SOURCES = range_test.cpp
 moab_test_SOURCES = MBTest.cpp
@@ -169,6 +177,24 @@ moab_test_CPPFLAGS += -I$(top_srcdir)/src/parallel
 kd_tree_test_CPPFLAGS += -I$(top_srcdir)/src/parallel
 test_prog_opt_CPPFLAGS += -I$(top_srcdir)/src/parallel
 endif
+
+FCDEFS += $(FC_DEFINE)SRCDIR=$(srcdir) \
+          $(FC_DEFINE)MESHDIR=$(MESHDIR)
+
+FORTDEFS = $(FCDEFS)
+PPFCCOMPILE = $(FC) $(FORTDEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+    $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
+LTPPFCCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=FC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=compile $(FC) $(FCDEFS) \
+    $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+    $(AM_FCFLAGS) $(FCFLAGS)
+PPF77COMPILE = $(F77) $(FORTDEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+   $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FFLAGS) $(FFLAGS)
+LTPPF77COMPILE = $(LIBTOOL) $(AM_V_lt) --tag=F77 $(AM_LIBTOOLFLAGS) \
+   $(LIBTOOLFLAGS) --mode=compile $(F77) $(FCDEFS) \
+   $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+   $(AM_FFLAGS) $(FFLAGS)
+
 
 EXTRA_DIST = TestUtil.hpp TestRunner.hpp
 

@@ -1,21 +1,28 @@
+#include "moab/MOABConfig.h"
 
-#include "mpi.h"
+#ifdef MOAB_HAVE_MPI
+#  include "moab_mpi.h"
+#endif
+
 #include "moab/iMOAB.h"
 // for malloc, free:
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #define CHECKRC(rc, message)  if (0!=rc) { printf ("%s", message); return 1;}
 int main(int argc, char * argv[])
 {
-
+  int nprocs=1, rank=0;
+#ifdef MOAB_HAVE_MPI
   MPI_Init(&argc, &argv);
-  int nprocs, rank;
+
 
   MPI_Comm comm=MPI_COMM_WORLD;
 
   MPI_Comm_size(comm, &nprocs);
   MPI_Comm_rank(comm, &rank);
+#endif
 
   char * filen = "p8ex1.h5m";
   if (argc>1)
