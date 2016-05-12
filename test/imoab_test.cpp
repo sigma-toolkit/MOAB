@@ -10,7 +10,13 @@
 #include <stdio.h>
 #include <string.h>
 
+char* filen = 0;
+
 #define CHECKRC(rc, message)  if (0!=rc) { printf ("%s", message); return 1;}
+#define STRINGIFY_(X) #X
+#define STRINGIFY(X) STRINGIFY_(X)
+
+
 int main(int argc, char * argv[])
 {
   int nprocs=1, rank=0;
@@ -24,10 +30,19 @@ int main(int argc, char * argv[])
   MPI_Comm_rank(comm, &rank);
 #endif
 
-  char * filen = "p8ex1.h5m";
+#ifdef MESHDIR
+#ifdef MOAB_HAVE_HDF5
+  filen = STRINGIFY(MESHDIR) "/io/p8ex1.h5m";
+#endif
+#else
+#error Specify MESHDIR to compile test
+#endif
+
   if (argc>1)
     filen = argv[1];
 
+  if (!filen)
+    return 1;
   /*
    * MOAB needs to be initialized; A MOAB instance will be created, and will be used by each application
    * in this framework. There is no parallel context yet.

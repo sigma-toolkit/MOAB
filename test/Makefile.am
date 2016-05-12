@@ -74,7 +74,7 @@ if HAVE_HDF5
 
 if PARALLEL
 # imoab tests
-  TESTS += imoab_test imoab_testF
+  TESTS += imoab_test 
 endif 
 endif
 
@@ -85,6 +85,13 @@ endif
 check_PROGRAMS = $(TESTS) \
 		 kd_tree_tool \
 		 kd_tree_time
+
+if HAVE_HDF5
+if PARALLEL
+  check_PROGRAMS += imoab_testF
+endif
+endif
+
 
 MOSTLYCLEANFILES = mb_write.g \
                    mb_write2.g \
