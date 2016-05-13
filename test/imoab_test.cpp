@@ -74,9 +74,17 @@ int main(int argc, char * argv[])
    * with each application. A unique application id will be returned, and will be used for all future
    * mesh operations/queries.
    */
-  rc = iMOAB_RegisterApplication( "PROTEUS", &comm,  pid);
+  rc = iMOAB_RegisterApplication( "PROTEUS",
+#ifdef MOAB_HAVE_MPI
+      &comm,
+#endif
+      pid);
   CHECKRC(rc, "failed to register application");
+#ifdef MOAB_HAVE_MPI
   char *read_opts="PARALLEL=READ_PART;PARTITION=PARALLEL_PARTITION;PARALLEL_RESOLVE_SHARED_ENTS";
+#else
+  char *read_opts="";
+#endif
   int num_ghost_layers=1;
 
   /*
@@ -356,7 +364,10 @@ int main(int argc, char * argv[])
       free(vertBC_ID);
       free(vertBC_value);
     }
+#ifdef MOAB_HAVE_MPI
     MPI_Barrier(comm); // to avoid printing problems, as we write all procs data
+#endif
+
   }
 
   // free allocated data
@@ -384,8 +395,9 @@ int main(int argc, char * argv[])
    */
   rc = iMOAB_Finalize();
   CHECKRC(rc, "failed to finalize MOAB");
-
+#ifdef MOAB_HAVE_MPI
   MPI_Finalize();
+#endif
 
   return 0;
 }
