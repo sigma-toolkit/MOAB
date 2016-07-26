@@ -25,6 +25,7 @@ config/ltversion.m4
 config/missing
 config.status
 config/test-driver
+config/MOABConfig.h.in
 configure
 .cproject
 *.cub
