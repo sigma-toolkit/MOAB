@@ -105,7 +105,10 @@ MOSTLYCLEANFILES = mb_write.g \
                    mb_stress_out.g \
                    merge_test.g \
                    mm_out.h5m \
-                   tree.h5m 
+                   tree.h5m \
+                   TaskMesh_n1.0.h5m \
+                   TaskMesh_n1.1.h5m \
+                   fnew.h5m
 
 # Tests and such
 
