@@ -55,7 +55,6 @@ libMOAB_la_SOURCES = \
   CN.cpp \
   CartVect.cpp \
   Core.cpp \
-  CoreOptions.hpp \
   DebugOutput.cpp \
   DebugOutput.hpp \
   DenseTag.hpp \
