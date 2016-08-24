@@ -3,7 +3,7 @@ AUTOMAKE_OPTIONS = foreign subdir-objects no-dependencies
 
 SUBDIRS = . io dual obb perf
 if HAVE_HDF5
-  SUBDIRS += h5file
+  SUBDIRS += h5file 
 endif
 if ENABLE_dagmc
   SUBDIRS += dagmc
@@ -70,6 +70,11 @@ if HAVE_HDF5
         mbground_test \
         lloyd_smoother_test \
         mhdf_public_test
+
+if PARALLEL
+# imoab tests
+  TESTS += imoab_test 
+endif 
 endif
 
 
@@ -79,6 +84,13 @@ endif
 check_PROGRAMS = $(TESTS) \
 		 kd_tree_tool \
 		 kd_tree_time
+
+if HAVE_HDF5
+if PARALLEL
+  check_PROGRAMS += imoab_testF
+endif
+endif
+
 
 MOSTLYCLEANFILES = mb_write.g \
                    mb_write2.g \
@@ -92,11 +104,17 @@ MOSTLYCLEANFILES = mb_write.g \
                    mb_stress_out.g \
                    merge_test.g \
                    mm_out.h5m \
-                   tree.h5m 
+                   tree.h5m \
+                   TaskMesh_n1.0.h5m \
+                   TaskMesh_n1.1.h5m \
+                   fnew.h5m
 
 # Tests and such
 
 test_Matrix3_SOURCES = test_Matrix3.cpp
+imoab_testF_SOURCES = imoab_testF.F
+imoab_testF_LDADD = $(LDADD) $(FCLIBS)
+imoab_test_SOURCES = imoab_test.cpp
 verdict_test_SOURCES = verdict_test.cpp
 range_test_SOURCES = range_test.cpp
 moab_test_SOURCES = MBTest.cpp
@@ -168,6 +186,24 @@ moab_test_CPPFLAGS += -I$(top_srcdir)/src/parallel
 kd_tree_test_CPPFLAGS += -I$(top_srcdir)/src/parallel
 test_prog_opt_CPPFLAGS += -I$(top_srcdir)/src/parallel
 endif
+
+FCDEFS += $(FC_DEFINE)SRCDIR=$(srcdir) \
+          $(FC_DEFINE)MESHDIR=$(MESHDIR)
+
+FORTDEFS = $(FCDEFS)
+PPFCCOMPILE = $(FC) $(FORTDEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+    $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FCFLAGS) $(FCFLAGS)
+LTPPFCCOMPILE = $(LIBTOOL) $(AM_V_lt) --tag=FC $(AM_LIBTOOLFLAGS) \
+    $(LIBTOOLFLAGS) --mode=compile $(FC) $(FCDEFS) \
+    $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+    $(AM_FCFLAGS) $(FCFLAGS)
+PPF77COMPILE = $(F77) $(FORTDEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
+   $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_FFLAGS) $(FFLAGS)
+LTPPF77COMPILE = $(LIBTOOL) $(AM_V_lt) --tag=F77 $(AM_LIBTOOLFLAGS) \
+   $(LIBTOOLFLAGS) --mode=compile $(F77) $(FCDEFS) \
+   $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) \
+   $(AM_FFLAGS) $(FFLAGS)
+
 
 EXTRA_DIST = TestUtil.hpp TestRunner.hpp
 
