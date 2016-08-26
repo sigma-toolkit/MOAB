@@ -18,7 +18,7 @@ C      include '/home/iulian/3rdparty/mpich-3.1/install/include/mpif.h'
       integer ierr, num_procs, my_id
       integer pid
       character*10 appname
-      character*132 filename
+      character*132 filename, tmpfile
       character*150 readopts
       integer ngv, nge, ndim, nparts
       integer nghlay
@@ -86,7 +86,8 @@ c     find out MY process ID, and how many processes were started.
 #endif
       call errorout(ierr, 'fail to register application')
 C
-      filename ='p8ex1.h5m'//CHAR(0)
+      tmpfile =FMDIR
+      filename = trim(tmpfile) // '/io/p8ex1.h5m' //CHAR(0)
       ierr = iMOAB_ReadHeaderInfo ( filename, ngv, nge, ndim, nparts)
       call errorout(ierr, 'fail to read header info')
 

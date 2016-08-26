@@ -27,6 +27,7 @@ AM_CPPFLAGS  = -DIS_BUILDING_MB \
                -I$(top_srcdir)/src/verdict \
                -I$(top_srcdir)/src/RefineMesh
 
+
 if PARALLEL
   AM_CPPFLAGS += -I$(top_srcdir)/src/parallel
 endif
@@ -73,7 +74,7 @@ if HAVE_HDF5
 
 if PARALLEL
 # imoab tests
-  TESTS += imoab_test 
+  TESTS += imoab_test imoab_testF
 endif 
 endif
 
@@ -84,12 +85,6 @@ endif
 check_PROGRAMS = $(TESTS) \
 		 kd_tree_tool \
 		 kd_tree_time
-
-if HAVE_HDF5
-if PARALLEL
-  check_PROGRAMS += imoab_testF
-endif
-endif
 
 
 MOSTLYCLEANFILES = mb_write.g \
@@ -113,6 +108,9 @@ MOSTLYCLEANFILES = mb_write.g \
 
 test_Matrix3_SOURCES = test_Matrix3.cpp
 imoab_testF_SOURCES = imoab_testF.F
+#  -DMOAB_HAVE_MPI is added just for fortran compiling; is that wrong?
+# still don't know how to "stringify" for the mesh input files 
+imoab_testF_FFLAGS = -DMOAB_HAVE_MPI -DFMDIR=\"$(MESHDIR)\"
 imoab_testF_LDADD = $(LDADD) $(FCLIBS)
 imoab_test_SOURCES = imoab_test.cpp
 verdict_test_SOURCES = verdict_test.cpp
