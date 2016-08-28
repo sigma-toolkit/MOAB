@@ -195,42 +195,41 @@ C printf some of the block info */
      &       I3, ' block ID: ' I4)
         enddo
 
-	    do  i=1,nblocks(3)
+        do  i=1,nblocks(3)
 
-	      print *,' block index:', i, ' block ID ', IWORK(bID+i-1)
-	      blockID = IWORK(bID+i-1)
-	      ierr = iMOAB_GetBlockInfo(pid, blockID , vpere, nebl)
-	      call errorout(ierr, 'failed to elem block info')
-	      print *, '  has' , nebl, ' elements with ', vpere, 'verts'
+          print *,' block index:', i, ' block ID ', IWORK(bID+i-1)
+          blockID = IWORK(bID+i-1)
+          ierr = iMOAB_GetBlockInfo(pid, blockID , vpere, nebl)
+          call errorout(ierr, 'failed to elem block info')
+          print *, '  has' , nebl, ' elements with ', vpere, 'verts'
 
-	 	  sizeconn = nebl * vpere
-	 	  eCO = ifree
-	      ierr = iMOAB_GetBlockElementConnectivities(pid, blockID,
+          sizeconn = nebl * vpere
+          eCO = ifree
+          ierr = iMOAB_GetBlockElementConnectivities(pid, blockID,
      &       sizeconn, IWORK(eCO) )
-	      call errorout(ierr, 'failed to get block elem connectivity')
+          call errorout(ierr, 'failed to get block elem connectivity')
 
-	      ifree = ifree + sizeconn
-	      eOWN = ifree
-	      ierr = iMOAB_GetElementOwnership(pid, blockID, nebl,
+          ifree = ifree + sizeconn
+          eOWN = ifree
+          ierr = iMOAB_GetElementOwnership(pid, blockID, nebl,
      &           IWORK(eOWN))
-	      call errorout(ierr, 'failed to get block elem ownership')
-	      ifree = ifree+nebl
+          call errorout(ierr, 'failed to get block elem ownership')
+          ifree = ifree+nebl
 
-	      egID = ifree
-	      elID = ifree + nebl
-	      ierr = iMOAB_GetElementID(pid, blockID, nebl,
+          egID = ifree
+          elID = ifree + nebl
+          ierr = iMOAB_GetElementID(pid, blockID, nebl,
      &          IWORK(egID), IWORK(elID)  )
-	      call errorout(ierr, 'failed to get block elem IDs')
-	      ifree = elID + nebl
+          call errorout(ierr, 'failed to get block elem IDs')
+          ifree = elID + nebl
 
-	      do j=1, nebl
+          do j=1, nebl
             write (*, 102) j,  IWORK(eOWN+j-1),IWORK(egID+j-1),
      &        IWORK(elID+j-1), (IWORK(eCO-1+(j-1)*vpere+k), k=1,vpere)
 102         FORMAT(' elem ', I3, ' owned by', I3, ' gid:', I3, ' lid:',
      &       I3, ' : ', 10I5)
-	      enddo
-
-	    enddo
+          enddo
+       enddo
 
 
 C      query int tag values on vertices
