@@ -55,6 +55,7 @@ C       indices for surface BC element, reference surf BC, value
 
 
       character*100 outfile, wopts
+      my_id = 0
 #ifdef MOAB_HAVE_MPI
       call MPI_INIT ( ierr )
       call errorout(ierr, 'fail to initialize MPI')
@@ -81,7 +82,7 @@ c     find out MY process ID, and how many processes were started.
       ierr = iMOAB_RegisterFortranApplication(appname, MPI_COMM_WORLD,
      & pid)
 #else
-      ierr = iMOAB_RegisterFortranApplication(appname, my_id,
+      ierr = iMOAB_RegisterFortranApplication(appname,
      & pid)
 #endif
       call errorout(ierr, 'fail to register application')
