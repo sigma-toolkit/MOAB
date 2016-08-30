@@ -143,8 +143,8 @@ ErrCode iMOAB_RegisterApplication( const iMOAB_String app_name,
 #ifdef MOAB_HAVE_MPI
   ParallelComm * pco = new ParallelComm(context.MBI, *comm);
 
-#if 1
-  int index = pco->get_id(); // t could be useful to get app id from pcomm instance ...
+#ifndef NDEBUG
+  int index = pco->get_id(); // it could be useful to get app id from pcomm instance ...
   assert(index==*pid);
 #endif
   context.pcomms.push_back(pco);
@@ -188,7 +188,7 @@ ErrCode iMOAB_RegisterFortranApplication( const iMOAB_String app_name,
   MPI_Comm ccomm = MPI_Comm_f2c( (MPI_Fint) *comm);
   ParallelComm * pco = new ParallelComm(context.MBI, ccomm);
 
-#if 1
+#ifndef NDEBUG
   int index = pco->get_id(); // it could be useful to get app id from pcomm instance ...
   assert(index==*pid);
 #endif
@@ -382,7 +382,7 @@ ErrCode iMOAB_LoadMesh( iMOAB_AppID pid, const iMOAB_String filename, const iMOA
   nprocs = context.pcomms[*pid]->size();
 #endif
 
-#if 1
+#ifndef NDEBUG
   // some debugging stuff
   std::ostringstream outfile;
   outfile <<"TaskMesh_n" <<nprocs<<"."<< rank<<".h5m";
