@@ -71,6 +71,7 @@ set(MOAB_LIB_SOURCES
         HalfFacetRep.cpp
         HigherOrderFactory.cpp
         HomXform.cpp
+        iMOAB.cpp 
         Internals.hpp
         LloydSmoother.cpp
         MBCNArrays.hpp
@@ -148,6 +149,7 @@ set( MOAB_INSTALL_HEADERS
         moab/FindPtFuncs.h
         moab/Forward.hpp
         moab/GeomUtil.hpp
+        moab/iMOAB.h
         moab/Interface.hpp
         moab/LloydSmoother.hpp
         moab/point_locater/tree/common_tree.hpp

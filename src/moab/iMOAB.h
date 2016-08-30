@@ -17,7 +17,6 @@
 */
 
 /*
-Comments from Mike and Emily:
 
 1) Fortran MPI_Comm won't work. Take an integer argument and use MPI_F2C calls to get the C-Comm object
 2) ReadHeaderInfo - Does it need the pid ? 
@@ -31,6 +30,8 @@ Comments from Mike and Emily:
 10) GetBlockInfo takes global Block ID; Remove blockname unless there is a separate use case for it..
 11) GetElementConnectivity - clarify whether we return global or local vertex numbering. Preferably local numbering else lot of deciphering for global.
 */
+
+#include "moab/MOABConfig.h"
 
 #define iMOAB_AppID    int*
 #define iMOAB_String   char*
