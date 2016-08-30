@@ -75,7 +75,10 @@ if HAVE_HDF5
 
 if PARALLEL
 # imoab tests
-  TESTS += imoab_test imoab_testF
+  TESTS += imoab_test
+if ENABLE_FORTRAN
+  TESTS += imoab_testF
+endif
 endif 
 endif
 
