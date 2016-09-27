@@ -154,8 +154,10 @@ AC_PROG_CXXCPP
 if (test "x$CHECK_FC" != "xno"); then
   FATHOM_SET_MPI_COMPILER([FC],  [$FC_LIST],[$COMPILERPATHS])
   FATHOM_SET_MPI_COMPILER([F77],[$F77_LIST],[$COMPILERPATHS])
-  AC_PROG_FC
+  AC_FC_PP_SRCEXT([F])
   AC_PROG_F77
+  AC_FC_PP_SRCEXT([F90])
+  AC_PROG_FC
 fi
 
 ]) # FATHOM_CHECK_COMPILERS
@@ -189,6 +191,7 @@ AC_ARG_ENABLE( optimize, AS_HELP_STRING([--enable-optimize],[Compile optimized (
                [enable_optimize=""; enable_cxx_optimize="no"; enable_cc_optimize="no"; enable_fc_optimize="no";	]
              )
 
+EXTRA_PGI_ONLY_FCFLAGS="-Mfree"
 if (test "x$enable_debug" != "xno"); then # debug flags
 # GNU
 EXTRA_GNU_CXXFLAGS="-Wall -Wno-long-long -pipe -pedantic -Wshadow -Wunused-parameter -Wpointer-arith -Wformat -Wformat-security -Wextra -Wno-variadic-macros -Wno-unknown-pragmas"
@@ -200,8 +203,8 @@ EXTRA_CLANG_FCFLAGS="$EXTRA_GNU_FCFLAGS"
 EXTRA_INTEL_CXXFLAGS="-pipe -C"
 EXTRA_INTEL_FCFLAGS="-C"
 # PGI
-EXTRA_PGI_CXXFLAGS="-traceback -Mfree -C"
-EXTRA_PGI_FCFLAGS="-traceback -Mfree -C -freeform -extend-source"
+EXTRA_PGI_CXXFLAGS="-traceback --diag_suppress 236 --diag_suppress=unrecognized_gcc_pragma -C"
+EXTRA_PGI_FCFLAGS="-traceback -Mbounds -Ktrap=inv,divz,ovf"
 # XLC
 EXTRA_BG_CXXFLAGS="-qarch=qp -qpic=large -qdebug=except"
 EXTRA_BG_FCFLAGS="-qarch=qp -qpic=large -qdebug=except"
@@ -218,8 +221,8 @@ EXTRA_CLANG_FCFLAGS="$EXTRA_CLANG_FCFLAGS -ffree-line-length-0 -finline-function
 EXTRA_INTEL_CXXFLAGS="$EXTRA_INTEL_CXXFLAGS -xHost -ip -no-prec-div" # -fast
 EXTRA_INTEL_FCFLAGS="$EXTRA_INTEL_FCFLAGS -xHost -ip -no-prec-div" # -fast
 # PGI
-EXTRA_PGI_CXXFLAGS="$EXTRA_PGI_CXXFLAGS -Munroll=5 -Mnoframe"
-EXTRA_PGI_FCFLAGS="$EXTRA_PGI_FCFLAGS -Munroll=5 -Mnoframe -freeform -extend-source"
+EXTRA_PGI_CXXFLAGS="$EXTRA_PGI_CXXFLAGS -fast"
+EXTRA_PGI_FCFLAGS="$EXTRA_PGI_FCFLAGS -fast"
 # XLC
 EXTRA_BG_CXXFLAGS="$EXTRA_BG_CXXFLAGS -qarch=qp -qtune=auto -qpic=large -qenablevmx"
 EXTRA_BG_FCFLAGS="$EXTRA_BG_FCFLAGS -qarch=qp -qtune=auto -qpic=large -qenablevmx"
@@ -304,9 +307,6 @@ if (test "x$ENABLE_FORTRAN" != "xno"); then
     FFLAGS="$FFLAGS -O2"
   fi
   AC_FC_PP_DEFINE
-  AC_FC_PP_SRCEXT
-  # AC_F77_LIBRARY_LDFLAGS
-  # AC_FC_LIBRARY_LDFLAGS
 fi
 
   # Check for 32/64 bit.
@@ -394,6 +394,16 @@ if (test "x$ENABLE_FORTRAN" != "xno" && test "x$CHECK_FC" != "xno"); then
     AC_LINK_IFELSE([AC_LANG_PROGRAM([])],
         [AC_MSG_RESULT([yes])]
         [fcxxlinkage=yes; FFLAGS="$FFLAGS -cxxlib"; FCFLAGS="$FCFLAGS -cxxlib"; FLIBS="$FLIBS -cxxlib"; FCLIBS="$FCLIBS -cxxlib"],
+        [AC_MSG_RESULT([no])]
+    )
+    LDFLAGS="$my_save_ldflags"
+  elif (test "$cc_compiler" == "PortlandGroup"); then
+    my_save_ldflags="$LDFLAGS"
+    LDFLAGS="$LDFLAGS -pgcpplibs -lstd -lC"
+    AC_MSG_CHECKING([whether $FC supports -lstd -lC])
+    AC_LINK_IFELSE([AC_LANG_PROGRAM([])],
+        [AC_MSG_RESULT([yes])]
+        [fcxxlinkage=yes; FLIBS="$FLIBS -pgcpplibs -lstd -lC"; FCLIBS="$FCLIBS -pgcpplibs -lstd -lC"],
         [AC_MSG_RESULT([no])]
     )
     LDFLAGS="$my_save_ldflags"
@@ -736,6 +746,9 @@ case "$cxx_compiler:$host_cpu" in
     FATHOM_CXX_32BIT=-xarch=generic
     FATHOM_CXX_64BIT=-xarch=generic64
     ;;
+  PortlandGroup:*)
+    FATHOM_CXX_SPECIAL="$EXTRA_PGI_CXXFLAGS"
+    ;;
   Clang:*)
     FATHOM_CXX_SPECIAL="$EXTRA_CLANG_CXXFLAGS"
     FATHOM_CXX_32BIT=-m32
@@ -834,34 +847,40 @@ case "$cc_compiler:$host_cpu" in
     FATHOM_CC_64BIT=-m64
     FATHOM_CC_SPECIAL="$EXTRA_GNU_ONLY_CXXFLAGS"
     FATHOM_FC_SPECIAL="$EXTRA_GNU_ONLY_FCFLAGS"
+    FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
     ;;
   GNU:powerpc*)
     FATHOM_CC_32BIT=-m32
     FATHOM_CC_64BIT=-m64
     FATHOM_CC_SPECIAL="$EXTRA_GNU_ONLY_CXXFLAGS"
     FATHOM_FC_SPECIAL="$EXTRA_GNU_ONLY_FCFLAGS"
+    FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
     ;;
   GNU:i?86|GNU:x86_64)
     FATHOM_CC_32BIT=-m32
     FATHOM_CC_64BIT=-m64
     FATHOM_CC_SPECIAL="$EXTRA_GNU_ONLY_CXXFLAGS"
     FATHOM_FC_SPECIAL="$EXTRA_GNU_ONLY_FCFLAGS"
+    FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
     ;;
   GNU:mips*)
     FATHOM_CC_32BIT="-mips32 -mabi=32"
     FATHOM_CC_64BIT="-mips64 -mabi=64"
     FATHOM_CC_SPECIAL="$EXTRA_GNU_ONLY_CXXFLAGS"
     FATHOM_FC_SPECIAL="$EXTRA_GNU_ONLY_FCFLAGS"
+    FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
     ;;
   GNU:*)
     FATHOM_CC_SPECIAL="$EXTRA_GNU_ONLY_CXXFLAGS"
     FATHOM_FC_SPECIAL="$EXTRA_GNU_ONLY_FCFLAGS"
+    FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
     ;;
   Intel:*)
     FATHOM_CC_32BIT=-m32
     FATHOM_CC_64BIT=-m64
     FATHOM_CC_SPECIAL="$EXTRA_INTEL_CXXFLAGS -wd981 -wd279 -wd1418 -wd383 -wd1572"
     FATHOM_FC_SPECIAL="$EXTRA_INTEL_FCFLAGS"
+    FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
     ;;
   VisualAge:*)
     case "$target_vendor" in
@@ -876,6 +895,7 @@ case "$cc_compiler:$host_cpu" in
         FATHOM_CC_64BIT=-q64
         FATHOM_CC_SPECIAL="$EXTRA_BG_CXXFLAGS -qmaxmem=-1 -qminimaltoc"
         FATHOM_FC_SPECIAL="$EXTRA_BG_FCFLAGS -qnoescape -WF,-C! -qddim -qalias=intptr"
+        FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
         AR="ar"
         NM="nm -B"
         ;;
@@ -884,6 +904,7 @@ case "$cc_compiler:$host_cpu" in
         FATHOM_CC_64BIT=-q64
         FATHOM_CC_SPECIAL="$EXTRA_BG_CXXFLAGS -qmaxmem=-1 -qminimaltoc"
         FATHOM_FC_SPECIAL="$EXTRA_BG_FCFLAGS -qnoescape -WF,-C! -qddim -qalias=intptr"
+        FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
         AR="ar"
         NM="nm -B -X 32_64"
         ;;
@@ -894,14 +915,22 @@ case "$cc_compiler:$host_cpu" in
     FATHOM_CC_64BIT=-64
     FATHOM_CC_SPECIAL=-LANG:std
     FATHOM_FC_SPECIAL=-LANG:std
+    FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
     ;;
   MIPSpro:*)
     FATHOM_CC_SPECIAL=-LANG:std
     FATHOM_FC_SPECIAL=-LANG:std
+    FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
+    ;;
+  PortlandGroup:*)
+    FATHOM_CC_SPECIAL="-traceback -C"
+    FATHOM_FC_SPECIAL="$EXTRA_PGI_FCFLAGS $EXTRA_PGI_ONLY_FCFLAGS"
+    FATHOM_F77_SPECIAL="$EXTRA_PGI_FCFLAGS"
     ;;
   Clang:*)
     FATHOM_CC_SPECIAL="$EXTRA_CLANG_CXXFLAGS"
     FATHOM_FC_SPECIAL="$EXTRA_CLANG_FCFLAGS"
+    FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
     FATHOM_CC_32BIT=-m32
     FATHOM_CC_64BIT=-m64
     ;;
@@ -918,7 +947,6 @@ case "$cc_compiler:$host_cpu" in
 esac
 AC_MSG_RESULT([$cc_compiler:$host_cpu])
 
-FATHOM_F77_SPECIAL="$FATHOM_FC_SPECIAL"
 ]) # end FATHOM_CC_FLAGS
 
 
