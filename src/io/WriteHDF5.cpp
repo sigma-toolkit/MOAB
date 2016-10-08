@@ -72,11 +72,6 @@ struct file { uint32_t magic; hid_t handle; };
     assert(0);
   }
 */
-# define myassert(A) assert(A)
-#else
-# define myassert(A)
-#endif
-
 #ifdef MOAB_HAVE_VALGRIND
 #  include <valgrind/memcheck.h>
 #else
@@ -172,7 +167,7 @@ static herr_t handle_hdf5_error(void* data)
 do { \
   if (mhdf_isError(&(A))) { \
     MB_SET_ERR_CONT(mhdf_message(&(A))); \
-    myassert(0); \
+    assert(0); \
     return error(MB_FAILURE); \
   } \
 } while (false)
@@ -181,7 +176,7 @@ do { \
 do { \
   if (mhdf_isError(&(A))) { \
     MB_SET_ERR_CONT(mhdf_message(&(A))); \
-    myassert(0); \
+    assert(0); \
     mhdf_closeData(filePtr, (B), &(A)); \
     return error(MB_FAILURE); \
   } \
@@ -191,7 +186,7 @@ do { \
 do { \
   if (mhdf_isError(&(A))) { \
     MB_SET_ERR_CONT(mhdf_message(&(A))); \
-    myassert(0); \
+    assert(0); \
     mhdf_closeData(filePtr, (B)[0], &(A)); \
     mhdf_closeData(filePtr, (B)[1], &(A)); \
     return error(MB_FAILURE); \
@@ -202,7 +197,7 @@ do { \
 do { \
   if (mhdf_isError(&(A))) { \
     MB_SET_ERR_CONT(mhdf_message(&(A))); \
-    myassert(0); \
+    assert(0); \
     mhdf_closeData(filePtr, (B)[0], &(A)); \
     mhdf_closeData(filePtr, (B)[1], &(A)); \
     mhdf_closeData(filePtr, (B)[2], &(A)); \
@@ -214,7 +209,7 @@ do { \
 do { \
   if (mhdf_isError(&(A))) { \
     MB_SET_ERR_CONT(mhdf_message(&(A))); \
-    myassert(0); \
+    assert(0); \
     mhdf_closeData(filePtr, (B), &(A)); \
     if (C) mhdf_closeData(filePtr, (D), &(A)); \
     return error(MB_FAILURE); \
@@ -234,7 +229,7 @@ do { \
   if (MB_SUCCESS != (A)) { \
     MB_CHK_ERR_CONT((A)); \
     mhdf_closeData(filePtr, (B), &(C)); \
-    myassert(0); \
+    assert(0); \
     return error(A); \
   } \
 } while (false)
@@ -246,7 +241,7 @@ do { \
     mhdf_closeData(filePtr, (B)[0], &(C)); \
     mhdf_closeData(filePtr, (B)[1], &(C)); \
     write_finished(); \
-    myassert(0); \
+    assert(0); \
     return error(A); \
   } \
 } while (false)
@@ -259,7 +254,7 @@ do { \
     mhdf_closeData(filePtr, (B)[1], &(C)); \
     mhdf_closeData(filePtr, (B)[2], &(C)); \
     write_finished(); \
-    myassert(0); \
+    assert(0); \
     return error(A); \
   } \
 } while (false)
@@ -272,7 +267,7 @@ do { \
     if (C) \
       mhdf_closeData(filePtr, (D), &(E)); \
     write_finished(); \
-    myassert(0); \
+    assert(0); \
     return error(A); \
   } \
 } while (false)
