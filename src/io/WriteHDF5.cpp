@@ -55,23 +55,8 @@
 #error Attempt to compile WriteHDF5 with HDF5 support disabled
 #endif
 
-/* Access HDF5 file handle for debugging
-#include <H5Fpublic.h>
-struct file { uint32_t magic; hid_t handle; };
-*/
-#undef DEBUG
-
 #undef BLOCKED_COORD_IO
 
-#ifdef DEBUG
-/*
-# include <H5Epublic.h>
-  extern "C" herr_t hdf_error_handler(void*)
-  {
-    H5Eprint(stderr);
-    assert(0);
-  }
-*/
 #ifdef MOAB_HAVE_VALGRIND
 #  include <valgrind/memcheck.h>
 #else
