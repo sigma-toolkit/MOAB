@@ -159,12 +159,7 @@ static void test_basic()
   ASSERT_DOUBLES_EQUAL( rotbox.volume(), 8.0*dims[0]*dims[1]*dims[2] );
   ASSERT_VECTORS_EQUAL( rotbox.dimensions(), 2*dims );
 
-<<<<<<< HEAD
-  //test cartvect constructor
-  axis_dims( rotaxes, dims );
-=======
   //test cartvect constructor; ordering of the axes by length happens in the constructor
->>>>>>> vijaysm/add-eigen-support
   ASSERT_VECTORS_EQUAL( rotbox_cv.center, origin );
   ASSERT_VECTORS_EQUAL( rotbox_cv.scaled_axis(0), rotax0 );
   ASSERT_VECTORS_EQUAL( rotbox_cv.scaled_axis(1), rotax1 );
