@@ -52,7 +52,7 @@ examples_DATA = examples/CrystalRouterExample.cpp \
                 examples/makefile.in \
                 examples/makefile
 
-EXTRA_DIST = $(doc_DATA) $(examples_DATA)
+EXTRA_DIST = $(doc_DATA) $(examples_DATA) debian
 
 # Automake doesn't seem to have a directory defined for
 # platform-dependent data (or include) files. So put 
