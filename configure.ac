@@ -224,6 +224,9 @@ else
 		     pymoab/pymoab/scd.cpp:pymoab/pymoab/scd.cpp
 		     pymoab/pymoab/scd.pyx:pymoab/pymoab/scd.pyx
 		     pymoab/pymoab/scd.pxd:pymoab/pymoab/scd.pxd
+		     pymoab/pymoab/skinner.cpp:pymoab/pymoab/skinner.cpp
+		     pymoab/pymoab/skinner.pyx:pymoab/pymoab/skinner.pyx
+		     pymoab/pymoab/skinner.pxd:pymoab/pymoab/skinner.pxd
 		     pymoab/pymoab/__init__.pxd:pymoab/pymoab/__init__.pxd
 		     pymoab/pymoab/__init__.py:pymoab/pymoab/__init__.py])
     # link test files to build location
@@ -234,6 +237,7 @@ else
 		     pymoab/tests/test_hom.py:pymoab/tests/test_hom.py
 		     pymoab/tests/test_topo_util.py:pymoab/tests/test_topo_util.py
 		     pymoab/tests/test_range.py:pymoab/tests/test_range.py
+		     pymoab/tests/test_skinner.py:pymoab/tests/test_skinner.py
 		     pymoab/tests/cyl_grps.h5m:pymoab/tests/cyl_grps.h5m
 		     pymoab/tests/cyl_grps.vtk:pymoab/tests/cyl_grps.vtk])
     if test "x$prefix" = "xNONE"; then
