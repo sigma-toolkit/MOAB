@@ -460,6 +460,7 @@ static CYTHON_INLINE float __PYX_NAN() {
 #include "moab/Core.hpp"
 #include "moab/HomXform.hpp"
 #include "moab/ScdInterface.hpp"
+#include "moab/Skinner.hpp"
 #include <stdio.h>
 #include <stdlib.h>
 #include "numpy/arrayobject.h"
