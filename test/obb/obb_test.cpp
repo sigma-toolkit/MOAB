@@ -10,6 +10,7 @@
 #include "moab_mpi.h"
 #endif
 
+#include "../TestUtil.hpp"
 #include <iostream>
 #include <sstream>
 #include <stdlib.h>
@@ -17,18 +18,11 @@
 #include <cstdio>
 #include <set>
 #include <map>
-#define STRINGIFY_(A) #A
-#define STRINGIFY(A) STRINGIFY_(A)
 
 using namespace moab;
 
 static const char* NAME = "obb_test";
-static const char* DEFAULT_FILES[] = { STRINGIFY(MESHDIR) "/3k-tri-sphere.vtk",
-                              //  STRINGIFY(MESHDIR) "../4k-tri-plane.vtk",
-#ifdef MOAB_HAVE_HDF5
-                                STRINGIFY(MESHDIR) "/3k-tri-cube.h5m",
-#endif
-                                0 };
+std::vector<std::string> DEFAULT_FILES;
 
 static void usage( const char* error, const char* opt )
 {
@@ -128,6 +122,12 @@ int main( int argc, char* argv[] )
   if (fail) return fail;
 #endif
 
+  DEFAULT_FILES.push_back( TestDir + "/3k-tri-sphere.vtk");
+  // DEFAULT_FILES.push_back( TestDir + "../4k-tri-plane.vtk");
+#ifdef MOAB_HAVE_HDF5
+  DEFAULT_FILES.push_back( TestDir + "/3k-tri-cube.h5m" );
+#endif
+
   std::vector<const char*> file_names;
   bool flags = true;
   for (int i = 1; i < argc; ++i) {
@@ -149,7 +149,6 @@ int main( int argc, char* argv[] )
         case 'U': settings.set_options = MESHSET_ORDERED; break;
         case 'o':
           save_file_name = get_option( i, argc, argv );
-          DEFAULT_FILES[1] = 0; // only one file can be saved, so by default only do one.
           break;
         case 'n': 
           settings.max_leaf_entities = get_int_option( i, argc, argv );
@@ -198,9 +197,9 @@ int main( int argc, char* argv[] )
   
   if (file_names.empty()) {
     std::cerr << "No file(s) specified." << std::endl;
-    for (int i = 0; DEFAULT_FILES[i]; ++i) {
+    for (size_t i = 0; i < DEFAULT_FILES.size(); ++i) {
       std::cerr << "Using default file \"" << DEFAULT_FILES[i] << '"' << std::endl;
-      file_names.push_back( DEFAULT_FILES[i] );
+      file_names.push_back( DEFAULT_FILES[i].c_str() );
     }
   }
   
