@@ -29,6 +29,9 @@ using namespace moab;
 #include "MBTagConventions.hpp"
 #include "moab/MeshTopoUtil.hpp"
 #include "moab/ReadUtilIface.hpp"
+#include "moab/MergeMesh.hpp"
+// we need to recompute adjacencies for merging to work
+#include "AEntityFactory.hpp"
 #include <sstream>
 
 // global variables ; should they be organized in a structure, for easier references?
@@ -49,6 +52,8 @@ struct appData {
   Range owned_elems;
   Range ghost_elems;
   int dimension; // 2 or 3, dimension of primary elements (redundant?)
+  long num_global_elements; // reunion of all elements in primary_elements; either from hdf5 reading or from reduce
+  long num_global_vertices; // reunion of all nodes, after sharing is resolved; it could be determined from hdf5 reading
   Range mat_sets;
   std::map<int, int> matIndex; // map from global block id to index in mat_sets
   Range neu_sets;
@@ -1382,6 +1387,397 @@ ErrCode iMOAB_DetermineGhostEntities(  iMOAB_AppID pid, int * ghost_dim, int *nu
 #endif
   return 0;
 }
+
+ErrCode iMOAB_SetGlobalInfo(iMOAB_AppID pid, int * num_global_verts, int * num_global_elems)
+{
+  appData & data = context.appDatas[*pid];
+  data.num_global_vertices = *num_global_verts;
+  data.num_global_elements = *num_global_elems;
+  return 0;
+}
+
+
+#ifdef MOAB_HAVE_MPI
+
+// utility to find out the ranks of the processes of a group, with respect to a global comm
+void find_group_ranks(MPI_Group group, MPI_Comm global, std::vector<int> & ranks)
+{
+   MPI_Group global_grp;
+   MPI_Comm_group(global, &global_grp);
+
+   int grp_size;
+
+   MPI_Group_size(group, &grp_size);
+   std::vector<int> rks (grp_size);
+   ranks.resize(grp_size);
+
+   for (int i = 0; i < grp_size; i++)
+     rks[i] = i;
+
+   MPI_Group_translate_ranks(group, grp_size, &rks[0], global_grp, &ranks[0]);
+   MPI_Group_free(&global_grp);
+   return;
+}
+// utility to find out the ranks of the processes of a comm, with respect to a global comm
+void find_comm_ranks(MPI_Comm comm, MPI_Comm global, std::vector<int> & ranks)
+{
+   MPI_Group grp;
+   MPI_Comm_group(comm, &grp);
+
+   find_group_ranks(grp, global, ranks);
+   return;
+}
+
+
+ErrCode iMOAB_SendMesh(iMOAB_AppID pid, MPI_Comm * sender, MPI_Comm * global, MPI_Group * receivingGroup, iMOAB_AppID target_pid)
+{
+  //appData & data = context.appDatas[*pid];
+  ParallelComm * pco = context.pcomms[*pid];
+
+  // first see what are the processors in each group; get the sender group too, from the sender communicator
+  MPI_Group senderGroup;
+  int ierr= MPI_Comm_group(*sender, &senderGroup);
+  if (ierr!=0)
+    return 1;
+  std::vector<int> senderRanks;
+  // find global ranks for sender
+  find_comm_ranks(*sender, *global, senderRanks);
+
+  std::vector<int> recvRanks;
+  // find global ranks for receiver
+  find_group_ranks(*receivingGroup, *global, recvRanks);
+
+  int sender_rank=-1;
+  MPI_Comm_rank(*sender, &sender_rank);
+#ifdef VERBOSE
+  if (0==sender_rank)
+  {
+    std::cout << " sender tasks:" ;
+    for (size_t j=0; j< senderRanks.size(); j++)
+      std::cout << " " << senderRanks[j];
+    std::cout << "\n";
+
+    std::cout << " receiver tasks:" ;
+    for (size_t j=0; j< recvRanks.size(); j++)
+      std::cout << " " << recvRanks[j];
+    std::cout << "\n";
+  }
+#endif
+
+  // decide how to distribute elements to each processor
+  // now, get the entities on local processor, and pack them into a buffer for various processors
+  // we will do trivial partition: first get the total number of elements from "sender"
+  std::vector<int> number_elems_per_part;
+  // how to distribute local elements to receiving tasks?
+  // trivial partition: compute first the total number of elements need to be sent
+  Range & owned = context.appDatas[*pid].owned_elems;
+
+  int local_owned_elem = (int) owned.size();
+  int size = pco->size();
+  int rank = pco->rank();
+  number_elems_per_part.resize(size); //
+  number_elems_per_part[rank] = local_owned_elem;
+#if (MPI_VERSION >= 2)
+      // Use "in place" option
+  ierr = MPI_Allgather(MPI_IN_PLACE, 0, MPI_DATATYPE_NULL,
+                              &number_elems_per_part[0], 1, MPI_INTEGER,
+                              *sender);
+#else
+  {
+    std::vector<int> all_tmp(size);
+    ierr = MPI_Allgather(&number_elems_per_part[rank], 1, MPI_INTEGER,
+                            &all_tmp[0], 1, MPI_INTEGER,
+                            *sender);
+    number_elems_per_part = all_tmp;
+  }
+#endif
+  if (ierr!=0)
+    return 1;
+
+  int local_sender_rank =-1;
+  ierr = MPI_Group_rank(senderGroup, &local_sender_rank);
+  if (ierr!=0)
+    return 1;
+
+  std::map<int, Range> ranges_to_send;
+  pco->trivial_partition (sender_rank, recvRanks, number_elems_per_part, owned, ranges_to_send);
+
+  if (0==sender_rank)
+  {
+    // will need to build a communication graph, because each sender knows now to which receiver to send data
+    // the receivers need to post receives for each sender that will send data to them
+    // will need to gather on rank 0 on the sender comm, global ranks of sender with receivers to send
+    // build communication matrix, each receiver will receive from what sender
+    std::map<int, std::vector<int> > recv_sets; // map from receiver to its senders (in global space)
+    // each receiver k will receive from senders recv_sets[k]
+    pco->senders_trivial_partition(senderRanks, number_elems_per_part, recvRanks, recv_sets);
+    // will have to send to the receiver rank 0 in their communicator (recvRanks[0])
+    std::vector<int> packed_array;
+    /*
+     * packed_array will have receiver, number of senders, then senders, etc
+     */
+    for (std::map<int, std::vector<int> >::iterator it=recv_sets.begin(); it!=recv_sets.end(); it++ )
+    {
+      int recv = it->first;
+      std::vector<int> & senders = it->second;
+      packed_array.push_back(recv);
+      packed_array.push_back( (int) senders.size() );
+
+      for (int k = 0; k<(int)senders.size(); k++ )
+        packed_array.push_back( senders[k] );
+    }
+    int size_pack_array = (int) packed_array.size();
+    /// use tag 10 to send size and tag 20 to send the packed array
+    ierr = MPI_Send(&size_pack_array, 1, MPI_INT, recvRanks[0], 10, *global); // we have to use global communicator
+    if (ierr!=0) return 1;
+    ierr = MPI_Send(&packed_array[0], size_pack_array, MPI_INT, recvRanks[0], 20, *global); // we have to use global communicator
+    if (ierr!=0) return 1;
+  }
+
+  for (std::map<int, Range>::iterator it=ranges_to_send.begin(); it!=ranges_to_send.end(); it++)
+  {
+    int receiver_proc = it->first;
+    Range ents = it->second;
+    // add necessary vertices too
+    Range verts;
+    context.MBI->get_adjacencies(ents, 0, false, verts, Interface::UNION);
+    ents.merge(verts);
+    ParallelComm::Buffer buffer(ParallelComm::INITIAL_BUFF_SIZE);
+    /*ErrorCode pack_buffer(Range &orig_ents,
+            const bool adjacencies,
+            const bool tags,
+            const bool store_remote_handles,
+            const int to_proc,
+            Buffer *buff,
+            TupleList *entprocs = NULL,
+            Range *allsent = NULL);*/
+    buffer.reset_ptr(sizeof(int));
+    ErrorCode rval = pco->pack_buffer(ents, false, true, false, -1, &buffer); if (rval!=MB_SUCCESS) return 1;
+    int size_pack = buffer.get_current_size();
+    // int MPI_Send(const void *buf, int count, MPI_Datatype datatype, int dest, int tag,  MPI_Comm comm)
+
+    ierr = MPI_Send(&size_pack, 1, MPI_INT, receiver_proc, 1, *global); // we have to use global communicator
+    if (ierr!=0) return 1;
+
+    ierr = MPI_Send(buffer.mem_ptr, size_pack, MPI_CHAR, receiver_proc, 2, *global); // we have to use global communicator
+    if (ierr!=0) return 1;
+
+  }
+  return 0;
+}
+ErrCode iMOAB_ReceiveMesh(iMOAB_AppID pid, MPI_Comm * receive, MPI_Comm * global, MPI_Group * sendingGroup,
+    iMOAB_AppID source_pid)
+{
+  appData & data = context.appDatas[*pid];
+  ParallelComm * pco = context.pcomms[*pid];
+  EntityHandle local_set = data.file_set;
+  ErrorCode rval;
+
+  // first see what are the processors in each group; get the sender group too, from the sender communicator
+  MPI_Group receiverGroup;
+  int ierr= MPI_Comm_group(*receive, &receiverGroup);
+  if (ierr!=0)
+    return 1;
+  std::vector<int> senderRanks;
+  std::vector<int> recvRanks;
+  // find global ranks for receivers
+  find_comm_ranks(*receive, *global, recvRanks);
+  // find global ranks for senders
+  find_group_ranks(*sendingGroup, *global, senderRanks);
+
+  int receiver_rank=-1;
+  MPI_Comm_rank(*receive, &receiver_rank);
+#ifdef VERBOSE
+  if (0==receiver_rank)
+  {
+    std::cout << " sender tasks:" ;
+    for (size_t j=0; j< senderRanks.size(); j++)
+      std::cout << " " << senderRanks[j];
+    std::cout << "\n";
+
+    std::cout << " receiver tasks:" ;
+    for (size_t j=0; j< recvRanks.size(); j++)
+      std::cout << " " << recvRanks[j];
+    std::cout << "\n";
+
+  }
+#endif
+  // first, receive from sender_rank 0, the communication graph (matrix), so each receiver
+  // knows what data to expect
+  int size_pack_array;
+  std::vector<int> pack_array;
+  MPI_Status status;
+  if (0==receiver_rank)
+  {
+    /*
+     * corresponding to these:
+     *
+        ierr = MPI_Send(&size_pack_array, 1, MPI_INT, recvRanks[0], 10, *global); // we have to use global communicator
+        if (ierr!=0) return 1;
+        ierr = MPI_Send(&packed_array[0], size_pack_array, MPI_INT, recvRanks[0], 20, *global); // we have to use global communicator
+        if (ierr!=0) return 1;
+        MPI_Recv(
+          void* data,
+          int count,
+          MPI_Datatype datatype,
+          int source,
+          int tag,
+          MPI_Comm communicator,
+          MPI_Status* status)
+     */
+    ierr = MPI_Recv (&size_pack_array, 1, MPI_INT, senderRanks[0], 10, *global, &status);
+    if (0!=ierr) return 1;
+#ifdef VERBOSE
+    std::cout <<" receive comm graph size: " << size_pack_array << "\n";
+#endif
+    pack_array.resize (size_pack_array);
+    ierr = MPI_Recv (&pack_array[0], size_pack_array, MPI_INT, senderRanks[0], 20, *global, &status);
+    if (0!=ierr) return 1;
+#ifdef VERBOSE
+    std::cout <<" receive comm graph " ;
+    for (int k=0; k<(int)pack_array.size(); k++)
+      std::cout << " " << pack_array[k];
+    std::cout <<"\n";
+#endif
+  }
+
+  // now broadcast this whole array to all receivers, so they know what to expect
+  MPI_Bcast(&size_pack_array, 1, MPI_INT, 0, *receive);
+  pack_array.resize(size_pack_array);
+  MPI_Bcast(&pack_array[0], size_pack_array, MPI_INT, 0, *receive);
+  // now identify for current task, where are we getting data from
+#ifdef VERBOSE
+  if (0==receiver_rank)
+    std::cout << " broadcasted comm array over receiver communicator\n";
+#endif
+
+  // senders across for the current receiver
+  int current_receiver = recvRanks[receiver_rank];
+
+  std::vector<int> senders_local;
+  int n=0;
+  while(n<(int)pack_array.size())
+  {
+    if (current_receiver == pack_array[n])
+    {
+      for (int j=0; j < pack_array[n+1]; j++)
+        senders_local.push_back(pack_array[n+2+j]);
+      break;
+    }
+    n = n + 2 + pack_array[n+1];
+  }
+  if (!senders_local.empty())
+  {
+#ifdef VERBOSE
+    std:: cout << " receiver " << current_receiver << " at rank " <<
+        receiver_rank << " will receive from " << senders_local.size() << " tasks: ";
+    for (int k=0; k<(int)senders_local.size(); k++)
+      std::cout << " " << senders_local[k];
+    std::cout<<"\n";
+#endif
+    for (int k=0; k<(int)senders_local.size(); k++)
+    {
+      int sender = senders_local[k]; // first receive the size of the buffer
+      /*
+       * corr to this:
+        ierr = MPI_Send(&size_pack, 1, MPI_INT, receiver_proc, 1, *global);
+       */
+      int size_pack;
+      ierr = MPI_Recv (&size_pack, 1, MPI_INT, sender, 1, *global, &status);
+      if (0!=ierr) return 1;
+      // now resize the buffeer, then receive it
+      ParallelComm::Buffer buff(size_pack);
+      /*
+       * corr to this:
+         ierr = MPI_Send(buffer.mem_ptr, size_pack, MPI_CHAR, receiver_proc, 2, *global);
+       */
+      ierr = MPI_Recv (buff.mem_ptr, size_pack, MPI_CHAR, sender, 2, *global, &status);
+      if (0!=ierr) return 1;
+      // now unpack the buffer we just received
+      Range entities;
+      std::vector<std::vector<EntityHandle> > L1hloc, L1hrem;
+      std::vector<std::vector<int> > L1p;
+      std::vector<EntityHandle> L2hloc, L2hrem;
+      std::vector<unsigned int> L2p;
+      buff.reset_ptr(sizeof(int));
+      std::vector<EntityHandle> entities_vec(entities.size());
+      std::copy(entities.begin(), entities.end(), entities_vec.begin());
+      rval = pco->unpack_buffer(buff.buff_ptr, false, -1, -1, L1hloc, L1hrem, L1p, L2hloc,
+                                  L2hrem, L2p, entities_vec);
+      if (MB_SUCCESS!= rval) return 1;
+      //CHECK_ERR(rval);
+      std::copy(entities_vec.begin(), entities_vec.end(), range_inserter(entities));
+      // we have to add them to the local set
+      rval = context.MBI->add_entities(local_set, entities);
+      if (MB_SUCCESS!= rval) return 1;
+      // some debugging stuff
+#ifdef VERBOSE
+      std::ostringstream partial_outFile;
+
+      partial_outFile <<"part_send_" <<sender<<"."<< "recv"<< current_receiver <<".vtk";
+
+        // the mesh contains ghosts too, but they are not part of mat/neumann set
+        // write in serial the file, to see what tags are missing
+      std::cout<< " writing from receiver " << current_receiver << " at rank " <<
+        receiver_rank << " from sender " <<  sender << " entities: " << entities.size() << std::endl;
+      rval = context.MBI->write_file(partial_outFile.str().c_str(), 0, 0, &local_set, 1); // everything on local set received
+      if (MB_SUCCESS!= rval) return 1;
+#endif
+    }
+
+  }
+  // in order for the merging to work, we need to be sure that the adjacencies are updated (created)
+  Core* this_core = dynamic_cast<Core*>(context.MBI);
+  if (this_core && !this_core->a_entity_factory()->vert_elem_adjacencies())
+    this_core->a_entity_factory()->create_vert_elem_adjacencies();
+
+  // after we are done, we could merge vertices that come from different senders, but
+  // have the same global id
+  Tag idtag;
+  rval = context.MBI->tag_get_handle("GLOBAL_ID", idtag);
+  if (MB_SUCCESS != rval) return 1;
+
+  if ((int)senders_local.size()>=2) // need to remove duplicate vertices
+                                    // that might come from different senders
+  {
+    Range local_ents;
+    rval = context.MBI->get_entities_by_handle(local_set, local_ents);
+    if (MB_SUCCESS != rval) return 1;
+    Range local_verts = local_ents.subset_by_type(MBVERTEX);
+    Range local_elems = subtract(local_ents, local_verts);
+
+    // remove from local set the vertices
+    rval = context.MBI->remove_entities(local_set, local_verts);
+    if (MB_SUCCESS!= rval) return 1;
+#ifdef VERBOSE
+    std::cout << "current_receiver " << current_receiver << " local verts: " << local_verts.size() << "\n";
+#endif
+    MergeMesh mm(context.MBI);
+    rval = mm.merge_using_integer_tag(local_verts, idtag);
+    if (MB_SUCCESS != rval) return 1;
+
+    Range new_verts; // local elems are local entities without vertices
+    rval = context.MBI->get_connectivity(local_elems, new_verts);
+    if (MB_SUCCESS!= rval) return 1;
+#ifdef VERBOSE
+    std::cout << "after merging: new verts: " << new_verts.size() << "\n";
+#endif
+    rval = context.MBI->add_entities(local_set, new_verts);
+    if (MB_SUCCESS!= rval) return 1;
+  }
+
+  // still need to resolve shared entities (in this case, vertices )
+  rval = pco->resolve_shared_ents(local_set, -1, -1, &idtag);
+  if (rval != MB_SUCCESS) return 1;
+
+  // populate the mesh with current data info
+  ierr = iMOAB_UpdateMeshInfo(pid);
+  if (0!=ierr) return 1;
+
+  return 0;
+}
+#endif
+
 #ifdef __cplusplus
 }
 #endif
