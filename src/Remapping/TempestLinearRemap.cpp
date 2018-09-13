@@ -31,7 +31,7 @@
 #include <cstdlib>
 #include <sstream>
 
-// #define VERBOSE
+#define VERBOSE
 
 // TODO: Replace these with the LAPACK wrappers once we have the Eigen-External-Dep branch merged in
 extern "C" {

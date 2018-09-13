@@ -40,7 +40,7 @@ using namespace moab;
 #include <sstream>
 #include <iostream>
 
-// #define VERBOSE
+#define VERBOSE
 
 // global variables ; should they be organized in a structure, for easier references?
 // or how do we keep them global?
@@ -2202,6 +2202,18 @@ ErrCode iMOAB_ComputeMeshIntersectionOnSphere ( iMOAB_AppID pid_src, iMOAB_AppID
     //     rval = ScaleToRadius(context.MBI, data_src.file_set, radius_source);CHKERRVAL(rval);
     //     rval = ScaleToRadius(context.MBI, data_tgt.file_set, radius_target);CHKERRVAL(rval);
     // }
+
+    {
+        std::stringstream outf;
+        outf << "tempest_src_" << pco_intx->rank() << ".exo";
+        data_intx.remapper->GetMesh(moab::Remapper::SourceMesh)->Write(outf.str());
+        outf.str("");
+        outf << "tempest_covsrc_" << pco_intx->rank() << ".exo";
+        data_intx.remapper->GetMesh(moab::Remapper::CoveringMesh)->Write(outf.str());
+        outf.str("");
+        outf << "tempest_tgt_" << pco_intx->rank() << ".exo";
+        data_intx.remapper->GetMesh(moab::Remapper::TargetMesh)->Write(outf.str());
+    }
 
     return 0;
 }

@@ -30,6 +30,10 @@
     #error mbtempest tool requires MPI configuration
 #endif
 
+#ifdef MOAB_HAVE_EIGEN
+#include    <Eigen/Dense>
+#endif
+
 // MPI includes
 #include "moab_mpi.h"
 #include "moab/ParallelComm.hpp"
@@ -229,6 +233,57 @@ int main ( int argc, char* argv[] )
     const double radius_src = 1.0 /*2.0*acos(-1.0)*/;
     const double radius_dest = 1.0 /*2.0*acos(-1.0)*/;
     const double boxeps = 0.1;
+
+
+    // Uncomment below to convert a mesh file from SCRIP or EXO format to MOAB format
+#if 0
+    const char* fMeshName = "/Users/vijaysm/code/sigma/moab/build/tempest/iulian/ocean.oEC60to30v3.scrip.161222.nc";
+    const char* fOutMeshName = "ocean.oEC60to30v3.scrip.161222.h5m";
+
+    moab::TempestRemapper remapper2 ( mbCore, pcomm );
+    remapper2.meshValidate = true;
+    remapper2.constructEdgeMap = true;
+    remapper2.initialize();
+
+    rval = remapper2.LoadMesh ( moab::Remapper::SourceMesh, fMeshName, moab::TempestRemapper::DEFAULT ); MB_CHK_ERR ( rval );
+    rval = remapper2.ConvertTempestMesh ( moab::Remapper::SourceMesh ); MB_CHK_ERR ( rval );
+    moab::EntityHandle& tmshset = remapper2.GetMeshSet( moab::Remapper::SourceMesh );
+    rval = mbCore->write_mesh ( fOutMeshName, &tmshset, 1 ); MB_CHK_ERR ( rval );
+#endif
+
+#if 1
+
+    // OfflineMap
+    const char* fMapName = "/Users/vijaysm/code/sigma/moab/build/tempest/iulian/comparison/map_ne11np4_to_oQU240_aave.160614.nc";
+    const char* fOutMatName = "map_ne11np4_to_oQU240_aave.160614.txt";
+    // const char* fMapName = "/Users/vijaysm/code/sigma/moab/build/tempest/iulian/comparison/ne11np4_to_oQU240_FVFV.nc";
+    // const char* fOutMatName = "ne11np4_to_oQU240_FVFV.txt";
+    // const char* fMapName = "/Users/vijaysm/code/sigma/moab/build/tempest/iulian/comparison/ne11np4_to_oQU240_SE4FV.nc";
+    // const char* fOutMatName = "ne11np4_to_oQU240_SE4FV.txt";
+    
+
+    OfflineMap mapRemap;
+    mapRemap.Read(fMapName);
+    mapRemap.SetFillValueOverride(0.0f);
+
+    SparseMatrix<double>& spmat = mapRemap.GetSparseMatrix();
+
+    DataVector<int> lrows, lcols;
+    DataVector<double> lvals;
+    spmat.GetEntries(lrows, lcols, lvals);
+
+    std::ofstream output_file ( fOutMatName, std::ios::out );
+    output_file << "# type: sparse matrix" << std::endl;
+    output_file << "# nnz: " << lvals.GetRows() << std::endl;
+    output_file << "# rows: " << spmat.GetRows() << std::endl;
+    output_file << "# columns: " << spmat.GetColumns() << std::endl;
+    for (unsigned iv=0; iv < lvals.GetRows(); iv++) {
+        output_file << lrows[iv]+1 << " " << lcols[iv]+1 << " " << lvals[iv] << std::endl;
+    }
+    output_file.flush(); // required here
+    output_file.close();
+
+#endif
 
     // Rescale the radius of both to compute the intersection
     if (ctx.meshsets.size() > 0) {
